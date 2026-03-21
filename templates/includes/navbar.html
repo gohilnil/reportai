@@ -1,5 +1,65 @@
 <!-- ArogyaAI Navbar -->
 <style>
+
+/* ── Logo / Brand ── */
+.nav-brand {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* SVG icon container */
+.nav-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-1) 0%, var(--accent-3) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.nav-logo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.nav-logo svg {
+  width: 15px;
+  height: 15px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.nav-brand:hover .nav-logo {
+  box-shadow: 0 6px 18px rgba(99,102,241,0.6), inset 0 1px 0 rgba(255,255,255,0.25);
+  transform: scale(1.05);
+}
+
+/* Gradient brand text */
+.nav-brand-text {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c4b5fd 50%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Profile Dropdown ── */
 .profile-dropdown { position: relative; }
 .profile-trigger {
   display: flex; align-items: center; gap: 8px;
@@ -21,7 +81,7 @@
 
 .p-dropdown-menu {
   display: none; position: absolute; top: calc(100% + 14px); right: 0;
-  min-width: 240px; background: rgba(4,11,24,0.95); border: 1px solid var(--border-2);
+  min-width: 240px; background: rgba(4,11,24,0.97); border: 1px solid var(--border-2);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
   backdrop-filter: var(--glass-blur-3); -webkit-backdrop-filter: var(--glass-blur-3);
   z-index: 9000; overflow: hidden;
@@ -63,6 +123,7 @@
   background: rgba(99,102,241,0.2); color: #a5b4fc;
 }
 
+/* ── Credits pill ── */
 .nav-credits {
   display: flex; align-items: center; gap: 6px; padding: 6px 14px;
   border-radius: 999px; font-size: 0.8rem; font-weight: 700;
@@ -73,33 +134,70 @@
 .nav-credits.no-credits { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: #fcd34d; }
 .nav-credits.no-credits:hover { background: rgba(245,158,11,0.18); transform: translateY(-1px); }
 
+/* ── Lang toggle ── */
 .lang-toggle { display: flex; background: var(--surface-2); border-radius: 999px; padding: 4px; gap: 2px; border: 1px solid var(--border-1); }
 .lang-toggle-btn { padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; color: var(--text-3); transition: var(--transition); }
 .lang-toggle-btn.active { background: var(--surface-3); color: var(--text-1); box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid var(--border-1); }
+
+/* ── MOBILE overrides ── */
+@media (max-width: 768px) {
+  /* Hide brand text — show only icon */
+  .nav-brand-text { display: none; }
+  .nav-logo { width: 32px; height: 32px; border-radius: 9px; }
+  .nav-logo svg { width: 16px; height: 16px; }
+
+  /* Compact profile trigger */
+  .profile-trigger .p-name { display: none; }
+  .profile-trigger { padding: 3px !important; gap: 0 !important; }
+
+  /* Credits hidden on mobile (in dropdown) */
+  .nav-credits { display: none !important; }
+
+  /* Smaller lang toggle */
+  .lang-toggle { padding: 3px; }
+  .lang-toggle-btn { padding: 3px 8px; font-size: 0.7rem; }
+
+  /* Dropdown safe width */
+  .p-dropdown-menu {
+    right: -8px;
+    min-width: 220px;
+    max-width: calc(100vw - 24px);
+  }
+}
 </style>
 
-<!-- ── FIXED: nav-wrapper is sticky at top:0, no top:24px offset ── -->
 <div class="nav-wrapper">
   <nav class="navbar">
+
+    <!-- ── Logo & Brand ── -->
     <a href="/" class="nav-brand">
-      <div style="width:24px; height:24px; border-radius:6px; background:linear-gradient(135deg,var(--accent-1),var(--accent-3)); display:flex; align-items:center; justify-content:center; color:white; font-size:0.8rem; box-shadow:0 4px 10px rgba(99,102,241,0.4); flex-shrink:0;">A</div>
-      {{ t.app_name }}
+      <div class="nav-logo">
+        <!-- ECG / health pulse icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <span class="nav-brand-text">{{ t.app_name }}</span>
     </a>
 
+    <!-- ── Desktop nav links ── -->
     <div class="nav-center">
-      <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">{{ 'રિपोर्ट' if lang == 'gu' else 'Reports' }}</a>
-      <a href="/analyze-symptoms" class="nav-link {% if active_page == 'symptoms' %}active{% endif %}">{{ 'लक्षणो' if lang == 'gu' else 'Symptoms' }}</a>
-      <a href="/analyze-image" class="nav-link {% if active_page == 'image' %}active{% endif %}">{{ 'इमेज' if lang == 'gu' else 'Images' }}</a>
-      <a href="/history" class="nav-link {% if active_page == 'history' %}active{% endif %}">{{ 'इतिहास' if lang == 'gu' else 'History' }}</a>
+      <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">{{ 'Reports' }}</a>
+      <a href="/analyze-symptoms" class="nav-link {% if active_page == 'symptoms' %}active{% endif %}">{{ 'Symptoms' }}</a>
+      <a href="/analyze-image" class="nav-link {% if active_page == 'image' %}active{% endif %}">{{ 'Images' }}</a>
+      <a href="/history" class="nav-link {% if active_page == 'history' %}active{% endif %}">{{ 'History' }}</a>
     </div>
 
+    <!-- ── Right side ── -->
     <div class="nav-right">
+
       <div class="lang-toggle">
         <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
         <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
       </div>
 
       {% if current_user.is_authenticated %}
+
       <a href="/upgrade" class="nav-credits {% if current_user.reports_left > 0 %}has-credits{% else %}no-credits{% endif %}">
         {% if current_user.reports_left > 0 %}⚡ {{ current_user.reports_left }}{% else %}⚠️ 0{% endif %}
       </a>
@@ -107,6 +205,7 @@
       <div class="profile-dropdown" id="profileDropdown">
         <div class="profile-trigger" onclick="toggleProfileDropdown(event)">
           <div class="p-avatar">{{ current_user.initials }}</div>
+          <span class="p-name">{{ current_user.first_name }}</span>
           <span class="p-chevron">▼</span>
         </div>
         <div class="p-dropdown-menu">
@@ -115,20 +214,20 @@
             <div class="p-menu-email">{{ current_user.email }}</div>
           </div>
           <div class="p-menu-credits">
-            <span class="p-menu-credits-label">{{ 'ক্রেডিট' if lang == 'gu' else 'Credits' }}</span>
+            <span class="p-menu-credits-label">{{ 'Credits' }}</span>
             <span class="p-menu-credits-val {% if current_user.reports_left == 0 %}empty{% endif %}">
               {{ current_user.reports_left }} / {{ current_user.reports_limit }}
             </span>
           </div>
           <div class="p-menu-section">
             <a href="/account" class="p-menu-item {% if active_page == 'account' %}active-item{% endif %}">
-              <span class="mi">👤</span>{{ 'मारुं एकाउंट' if lang == 'gu' else 'My Account' }}
+              <span class="mi">👤</span>My Account
             </a>
             <a href="/history" class="p-menu-item {% if active_page == 'history' %}active-item{% endif %}">
               <span class="mi">📋</span>{{ t.nav_history }}
             </a>
             <a href="/upgrade" class="p-menu-item {% if active_page == 'upgrade' %}active-item{% endif %}">
-              <span class="mi">⚡</span>{{ 'क्रेडिट खरीदो' if lang == 'gu' else 'Buy Credits' }}
+              <span class="mi">⚡</span>Buy Credits
               {% if current_user.reports_left == 0 %}<span class="badge-new">!</span>{% endif %}
             </a>
           </div>
@@ -144,9 +243,10 @@
       </div>
 
       {% else %}
-      <a href="/login"  class="btn btn-ghost btn-sm">{{ 'लॉग इन' if lang == 'gu' else 'Log in' }}</a>
-      <a href="/signup" class="btn btn-primary btn-sm">{{ 'शरू करो' if lang == 'gu' else 'Sign up' }}</a>
+      <a href="/login"  class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Sign up</a>
       {% endif %}
+
     </div>
   </nav>
 </div>
@@ -155,7 +255,7 @@
 function toggleProfileDropdown(e) {
   e.stopPropagation();
   const d = document.getElementById('profileDropdown');
-  if(d) d.classList.toggle('open');
+  if (d) d.classList.toggle('open');
 }
 document.addEventListener('click', function() {
   const d = document.getElementById('profileDropdown');
