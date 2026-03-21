@@ -428,6 +428,133 @@ GUJARATI_ACTION_STEPS:
         'gujarati_action_steps': _extract_bullets(raw, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
     }
 
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
+MAX_IMAGE_MB = 5
+
+def allowed_image(filename):
+    return (
+        '.' in filename and
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+    )
+
+def encode_image_to_base64(filepath):
+    """Convert image file to base64 string for AI API"""
+    import base64
+    with open(filepath, 'rb') as f:
+        return base64.b64encode(f.read()).decode('utf-8')
+
+def get_image_mime_type(filename):
+    """Get correct MIME type for image"""
+    ext = filename.rsplit('.', 1)[1].lower()
+    mime_map = {
+        'jpg':  'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png':  'image/png',
+        'webp': 'image/webp',
+        'gif':  'image/gif',
+    }
+    return mime_map.get(ext, 'image/jpeg')
+
+def analyze_image_with_ai(image_path, filename, category='general', context=''):
+    """Send image to Groq vision model and get structured analysis"""
+
+    category_hints = {
+        'skin':     'Focus on skin condition, color, texture, any visible rash, lesion or abnormality.',
+        'food':     'Focus on what food items are visible, nutritional aspects, hygiene concerns.',
+        'medicine': 'Focus on identifying the medicine, reading any visible text, dosage info.',
+        'report':   'Focus on extracting and explaining key medical values and findings.',
+        'xray':     'Focus on visible bone structure, any abnormalities, density differences.',
+        'general':  'Provide a general health-related analysis of what you see.',
+    }
+
+    context_line = f'\nAdditional context from user: "{context}"' if context else ''
+
+    prompt = f"""You are ArogyaAI, an expert AI health assistant analyzing a {category} image.
+{category_hints.get(category, category_hints['general'])}
+{context_line}
+
+IMPORTANT RULES:
+- Never give a definitive medical diagnosis
+- Use simple, clear language
+- Be caring and reassuring in tone
+- Always recommend consulting a doctor for medical concerns
+
+Respond in this EXACT format:
+
+CONFIDENCE_SCORE: [0-100]
+
+RISK_LEVEL: [LOW or MEDIUM or HIGH]
+RISK_REASON: [one plain sentence]
+
+WHAT_I_SEE:
+[2-3 sentences describing what is visible in the image in simple terms]
+
+POSSIBLE_ISSUE:
+[2-3 sentences about what this might indicate — use "may" and "could" language]
+
+ACTION_STEPS:
+- [most important action]
+- [second action]
+- [third action if needed]
+
+WHEN_TO_SEE_DOCTOR:
+[one clear sentence about when to seek immediate medical attention]
+
+GUJARATI_SUMMARY:
+[3-4 sentences in simple everyday Gujarati explaining what was seen and what to do]
+
+GUJARATI_ACTION_STEPS:
+- [action 1 in Gujarati]
+- [action 2 in Gujarati]
+- [action 3 in Gujarati if needed]"""
+
+    # Use Groq vision model
+    response = groq_client.chat.completions.create(
+        model='meta-llama/llama-4-scout-17b-16e-instruct',
+        messages=[
+            {
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'image_url',
+                        'image_url': {
+                            'url': f'data:{get_image_mime_type(filename)};base64,{encode_image_to_base64(image_path)}'
+                        }
+                    },
+                    {
+                        'type': 'text',
+                        'text': prompt
+                    }
+                ]
+            }
+        ],
+        max_tokens=2000,
+        temperature=0.3,
+    )
+
+    raw = response.choices[0].message.content
+    return parse_image_response(raw)
+
+
+def parse_image_response(response):
+    """Parse the image analysis response"""
+    what_i_see   = _extract_section(response, 'WHAT_I_SEE:',    ['POSSIBLE_ISSUE:', 'ACTION_STEPS:'])
+    possible     = _extract_section(response, 'POSSIBLE_ISSUE:',['ACTION_STEPS:', 'WHEN_TO_SEE_DOCTOR:'])
+    when_doctor  = _extract_section(response, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:']).split('\n')[0].strip()
+    guj_summary  = _extract_section(response, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:'])
+    risk_reason  = _extract_section(response, 'RISK_REASON:', ['WHAT_I_SEE:', 'POSSIBLE_ISSUE:']).split('\n')[0].strip()
+
+    return {
+        'confidence':           _parse_confidence(response),
+        'risk_level':           _parse_risk(response),
+        'risk_reason':          risk_reason or 'Analysis complete.',
+        'what_i_see':           what_i_see   or 'Could not process image clearly.',
+        'possible_issue':       possible     or 'No specific concerns identified.',
+        'action_steps':         _extract_bullets(response, 'ACTION_STEPS:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:']),
+        'when_to_see_doctor':   when_doctor  or 'Consult a doctor if you have any concerns.',
+        'gujarati_summary':     guj_summary  or 'સમજૂતી ઉપલબ્ધ નથી.',
+        'gujarati_action_steps': _extract_bullets(response, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
+    }
 
 # ─────────────────────────────────────────────
 # CONTEXT PROCESSORS
@@ -722,9 +849,45 @@ def health():
 @login_required
 def analyze_image_route():
     if request.method == 'POST':
-        # Step 2 will add full AI logic here
-        return render_template('analyze_image.html',
-            error='AI image analysis coming in Step 2!')
+        image = request.files.get('image')
+        category = request.form.get('category', 'general').strip()
+        context  = request.form.get('context',  '').strip()[:200]
+
+        # Validation
+        if not image or image.filename == '':
+            return render_template('analyze_image.html',
+                error='Please select or capture an image.')
+
+        if not allowed_image(image.filename):
+            return render_template('analyze_image.html',
+                error='Only JPG, PNG, WEBP and GIF images are supported.')
+
+        if image.content_length and image.content_length > MAX_IMAGE_MB * 1024 * 1024:
+            return render_template('analyze_image.html',
+                error=f'Image too large. Maximum size is {MAX_IMAGE_MB}MB.')
+
+        filename = secure_filename(image.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'img_{filename}')
+
+        try:
+            image.save(filepath)
+            analysis = analyze_image_with_ai(filepath, filename, category, context)
+        except Exception as e:
+            log.error(f'Image analysis error: {e}')
+            return render_template('analyze_image.html',
+                error='AI analysis failed. Please try a clearer image.')
+        finally:
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
+
+        return render_template('image_result.html',
+            analysis=analysis,
+            category=category,
+            context=context)
+
     return render_template('analyze_image.html')
 
 with app.app_context():
