@@ -547,6 +547,41 @@ def view_report(report_id):
 # ─── Init DB & Run ─────────────────────────────────────────────
 app.jinja_env.globals.update(enumerate=enumerate)
 
+# Language strings for UI
+TRANSLATIONS = {
+    'en': {
+        'app_name': 'ArogyaAI',
+        'tagline': 'Your AI Health Assistant',
+        'nav_reports': 'Reports',
+        'nav_symptoms': 'Symptoms',
+        'nav_history': 'History',
+        'upload_title': 'Understand Any Report',
+        'upload_sub': 'Upload your medical report, bank statement or any PDF — explained in simple words instantly.',
+        'symptom_title': 'Describe Your Symptoms',
+        'symptom_sub': 'Type or speak your symptoms. Our AI will analyze and guide you.',
+        'disclaimer': 'This is not a medical diagnosis. Always consult a qualified doctor.',
+        'free_left': 'free reports remaining',
+    },
+    'gu': {
+        'app_name': 'આરોગ્યAI',
+        'tagline': 'તમારો AI સ્વાસ્થ્ય સહાયક',
+        'nav_reports': 'રિપોર્ટ',
+        'nav_symptoms': 'લક્ષણો',
+        'nav_history': 'ઇતિહાસ',
+        'upload_title': 'કોઈ પણ રિપોર્ટ સમજો',
+        'upload_sub': 'તમારો મેડિકલ રિપોર્ટ અપલોડ કરો — સરળ ભાષામાં તરત સમજૂતી મેળવો.',
+        'symptom_title': 'તમારા લક્ષણો જણાવો',
+        'symptom_sub': 'ટાઇપ કરો અથવા બોલો. અમારી AI તમને માર્ગદર્શન આપશે.',
+        'disclaimer': 'આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.',
+        'free_left': 'મફત રિપોર્ટ બાકી',
+    }
+}
+
+@app.context_processor
+def inject_globals():
+    lang = request.cookies.get('lang', 'en')
+    return dict(lang=lang, t=TRANSLATIONS.get(lang, TRANSLATIONS['en']))
+
 @app.route('/analyze-symptoms', methods=['GET', 'POST'])
 @login_required
 def analyze_symptoms_route():
@@ -572,6 +607,14 @@ def analyze_symptoms_route():
             symptoms=symptoms)
 
     return render_template('symptoms.html')
+
+@app.route('/set-language/<lang>')
+def set_language(lang):
+    if lang not in ['en', 'gu']:
+        lang = 'en'
+    response = redirect(request.referrer or url_for('index'))
+    response.set_cookie('lang', lang, max_age=60*60*24*365)
+    return response
 
 with app.app_context():
     db.create_all()

@@ -3,157 +3,111 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ReportAI — Understand Any Document</title>
+  <title>{{ t.app_name }} — {{ t.tagline }}</title>
   <link rel="stylesheet" href="/static/style.css">
-  
-  <!-- CDNs for 3D & Animations -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js" defer></script>
 </head>
 <body>
-
-<!-- 3D Background Elements -->
-<div class="bg-texture"></div>
-<div id="canvas-container"></div>
-
+<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
-  <!-- NAVBAR -->
- <nav class="navbar">
-    <a href="/" class="nav-brand">ArogyaAI</a>
+
+  <nav class="navbar">
+    <a href="/" class="nav-brand">{{ t.app_name }}</a>
     <div class="nav-center">
-      <a href="/" class="nav-link">📄 Reports</a>
-      <a href="/analyze-symptoms" class="nav-link">🩺 Symptoms</a>
-      <a href="/history" class="nav-link">📋 History</a>
+      <a href="/" class="nav-link active">📄 {{ t.nav_reports }}</a>
+      <a href="/analyze-symptoms" class="nav-link">🩺 {{ t.nav_symptoms }}</a>
+      <a href="/history" class="nav-link">📋 {{ t.nav_history }}</a>
     </div>
     <div class="nav-right">
+      <!-- Language Toggle -->
+      <div class="lang-toggle">
+        <a href="/set-language/en">
+          <button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button>
+        </a>
+        <a href="/set-language/gu">
+          <button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button>
+        </a>
+      </div>
       <div class="nav-user">
         <div class="nav-avatar">{{ current_user.name[0].upper() }}</div>
-        {{ current_user.name.split()[0] }}
+        <span>{{ current_user.name.split()[0] }}</span>
       </div>
-      <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
+      <a href="/logout" class="btn btn-ghost btn-sm">{{ 'બહાર' if lang == 'gu' else 'Log out' }}</a>
     </div>
-</nav>
+  </nav>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="container stagger-2">
-      <div class="hero-eyebrow">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        AI-Powered · English + ગુજરાતી
-      </div>
-
-      <h1 class="hero-title">
-        Understand Any<br>
-        <span class="gradient">Report</span><br>
-        In Seconds
-      </h1>
-      
-      <p class="hero-sub">Upload medical, bank, or legal PDFs. Our AI explains them in plain language instantly.</p>
-
+  <section class="hero animate-in">
+    <div class="hero-eyebrow">
+      <span class="badge badge-accent">⚡ AI-Powered</span>
+      <span class="badge badge-cyan">🇮🇳 English + ગુજરાતી</span>
       {% if reports_left is not none %}
-      <div style="margin-bottom: 32px;">
-        <span class="hero-eyebrow" style="border-color: rgba(16,185,129,0.3); color: #34d399; background: rgba(16,185,129,0.1);">
-          {% if reports_left == 0 %}No free reports left{% else %}{{ reports_left }} free report{{ 's' if reports_left != 1 else '' }} left{% endif %}
-        </span>
-      </div>
+      <span class="badge {% if reports_left == 0 %}badge-warning{% else %}badge-success{% endif %}">
+        🎁 {{ reports_left }} {{ t.free_left }}
+      </span>
       {% endif %}
     </div>
+    <h1 class="hero-title">{{ t.upload_title.split()[0] }} <span class="gradient">{{ t.upload_title.split()[1] if t.upload_title.split()|length > 1 else '' }}</span><br>{{ t.upload_title.split()[2:] | join(' ') if t.upload_title.split()|length > 2 else '' }}</h1>
+    <p class="hero-sub">{{ t.upload_sub }}</p>
   </section>
 
-  <!-- UPLOAD SECTION -->
-  <section class="upload-wrapper container-sm stagger-3">
+  <div class="container-sm animate-in delay-2" style="padding-bottom:56px;">
+
     {% if error %}
-    <div class="alert alert-error">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      {{ error }}
+    <div class="alert alert-error" style="margin-bottom:16px;">
+      <span class="alert-icon">⚠</span>
+      <span>{{ error }}{% if show_upgrade %} <a href="/upgrade" style="color:#a5b4fc; font-weight:600; margin-left:4px;">{{ 'અપગ્રેડ કરો' if lang == 'gu' else 'Upgrade →' }}</a>{% endif %}</span>
     </div>
     {% endif %}
 
-    <div class="gradient-border-wrap">
-      <div class="gradient-border-inner glass upload-card">
-        <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">
-          
-          <div class="drop-zone glow-hover" id="dropZone">
-            <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
-            <div class="drop-icon-wrap">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+    <div class="upload-card">
+      <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">
+        <div class="drop-zone" id="dropZone">
+          <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
+          <label for="pdf_file">
+            <span class="drop-icon">📄</span>
+            <div class="drop-title" id="dropTitle">
+              {{ 'PDF ફાઇલ અહીં છોડો અથવા ક્લિક કરો' if lang == 'gu' else 'Drop your PDF here or click to browse' }}
             </div>
-            <div class="drop-title" id="dropTitle">Drop PDF here or click to browse</div>
-            <div class="drop-sub">Max 10MB</div>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
-            <span id="submitLabel">Explain My Report</span>
-          </button>
-
-          <div class="upload-meta">
-            <div class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              Private
-            </div>
-            <div class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              ~5 seconds
-            </div>
-            <div class="meta-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              English + ગુજરાતી
-            </div>
-          </div>
-        </form>
-      </div>
+            <div class="drop-sub">{{ 'મેડિકલ · બૅન્ક · કાયદો · શૈક્ષણિક' if lang == 'gu' else 'Medical · Bank · Legal · Academic · Any PDF' }}</div>
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <span id="submitLabel">{{ 'મારો રિપોર્ટ સમજાવો' if lang == 'gu' else 'Explain My Report' }}</span>
+        </button>
+        <div class="upload-meta">
+          <div class="upload-meta-item">🔒 {{ 'ખાનગી' if lang == 'gu' else 'Private' }}</div>
+          <div class="upload-meta-item">⚡ {{ '~૫ સેકન્ડ' if lang == 'gu' else '~5 seconds' }}</div>
+          <div class="upload-meta-item">🇮🇳 English + ગુજરાતી</div>
+        </div>
+      </form>
     </div>
-  </section>
 
-  <!-- FEATURES SECTION -->
-  <section class="container">
-    <div class="features-grid">
-      <div class="feature-card glass glow-hover">
-        <div class="feature-icon">🏥</div>
-        <div class="feature-title">Medical Reports</div>
-        <div class="feature-desc">Blood tests, MRI, and X-ray reports explained simply.</div>
-      </div>
-      <div class="feature-card glass glow-hover">
-        <div class="feature-icon">🏦</div>
-        <div class="feature-title">Bank Statements</div>
-        <div class="feature-desc">Understand transactions, balances, and charges.</div>
-      </div>
-      <div class="feature-card glass glow-hover">
-        <div class="feature-icon">⚖️</div>
-        <div class="feature-title">Legal Documents</div>
-        <div class="feature-desc">Contracts and agreements in plain language.</div>
-      </div>
-      <div class="feature-card glass glow-hover">
-        <div class="feature-icon">🎓</div>
-        <div class="feature-title">Academic Results</div>
-        <div class="feature-desc">Grade reports and certificates decoded.</div>
-      </div>
-      <div class="feature-card glass glow-hover">
-        <div class="feature-icon">📋</div>
-        <div class="feature-title">Insurance Papers</div>
-        <div class="feature-desc">Clear breakdown of what is covered and fine print.</div>
-      </div>
-      <div class="feature-card glass glow-hover">
-        <div class="feature-icon">🏠</div>
-        <div class="feature-title">Property Docs</div>
-        <div class="feature-desc">Lease agreements and property registrations explained.</div>
-      </div>
+    <!-- Also try symptom analyzer -->
+    <div style="text-align:center; margin-top:24px; padding:20px; background:rgba(16,185,129,0.04); border:1px solid rgba(16,185,129,0.12); border-radius:var(--radius-lg);">
+      <div style="font-size:1.4rem; margin-bottom:8px;">🩺</div>
+      <div style="font-weight:600; margin-bottom:4px; font-size:0.92rem;">{{ 'લક્ષણો છે?' if lang == 'gu' else 'Have symptoms?' }}</div>
+      <div style="font-size:0.8rem; color:var(--text2); margin-bottom:14px;">{{ 'PDF વગર — ફક્ત ટાઇપ કરો અથવા બોલો' if lang == 'gu' else 'No PDF needed — just type or speak your symptoms' }}</div>
+      <a href="/analyze-symptoms" class="btn btn-health btn-sm">🎤 {{ 'લક્ષણ વિશ્લેષક' if lang == 'gu' else 'Try Symptom Analyzer' }}</a>
     </div>
-  </section>
 
-  <!-- FOOTER -->
-  <footer class="footer container stagger-4">
-    <div class="footer-content">
-      <div class="footer-brand">ReportAI © 2026</div>
-      <div class="nav-right">
-        <a href="/history" class="nav-link">History</a>
-        <a href="/logout" class="nav-link">Log out</a>
-      </div>
+    <div class="features-grid animate-in delay-3">
+      <div class="feature-card"><div class="feature-icon">🏥</div><div class="feature-title">{{ 'મેડિકલ રિપોર્ટ' if lang == 'gu' else 'Medical Reports' }}</div><div class="feature-desc">{{ 'રક્ત, MRI, X-ray' if lang == 'gu' else 'Blood tests, MRI, X-ray' }}</div></div>
+      <div class="feature-card"><div class="feature-icon">🏦</div><div class="feature-title">{{ 'બૅન્ક સ્ટેટમેન્ટ' if lang == 'gu' else 'Bank Statements' }}</div><div class="feature-desc">{{ 'વ્યવહારો, બૅલેન્સ' if lang == 'gu' else 'Transactions, balance' }}</div></div>
+      <div class="feature-card"><div class="feature-icon">⚖️</div><div class="feature-title">{{ 'કાનૂની દસ્તાવેજ' if lang == 'gu' else 'Legal Documents' }}</div><div class="feature-desc">{{ 'કરાર, નિયમો' if lang == 'gu' else 'Contracts, agreements' }}</div></div>
+      <div class="feature-card"><div class="feature-icon">🎓</div><div class="feature-title">{{ 'શૈક્ષણિક પરિણામ' if lang == 'gu' else 'Academic Results' }}</div><div class="feature-desc">{{ 'ગ્રેડ, CGPA' if lang == 'gu' else 'Grades, CGPA' }}</div></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span class="footer-brand">{{ t.app_name }}</span>
+    <span>© 2026 · {{ t.disclaimer }}</span>
+    <div class="footer-right">
+      <a href="/analyze-symptoms" class="footer-link">🩺 {{ t.nav_symptoms }}</a>
+      <a href="/history" class="footer-link">{{ t.nav_history }}</a>
+      <a href="/logout" class="footer-link">{{ 'બહાર' if lang == 'gu' else 'Log out' }}</a>
     </div>
   </footer>
 </div>
-
 <script src="/static/script.js"></script>
 </body>
 </html>

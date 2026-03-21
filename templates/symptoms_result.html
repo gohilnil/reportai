@@ -73,18 +73,21 @@
 
 <div class="page">
 
-  <nav class="navbar">
-    <a href="/" class="nav-brand">ArogyaAI</a>
-    <div class="nav-center">
-      <a href="/" class="nav-link">📄 Reports</a>
-      <a href="/analyze-symptoms" class="nav-link" style="color:#6ee7b7;">🩺 Symptoms</a>
-      <a href="/history" class="nav-link">📋 History</a>
+ <nav class="navbar">
+  <a href="/" class="nav-brand">{{ t.app_name }}</a>
+  <div class="nav-center">
+    <a href="/" class="nav-link">📄 {{ t.nav_reports }}</a>
+    <a href="/analyze-symptoms" class="nav-link">🩺 {{ t.nav_symptoms }}</a>
+    <a href="/history" class="nav-link">📋 {{ t.nav_history }}</a>
+  </div>
+  <div class="nav-right">
+    <div class="lang-toggle">
+      <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
+      <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
     </div>
-    <div class="nav-right">
-      <a href="/analyze-symptoms" class="btn btn-ghost btn-sm">← New Analysis</a>
-      <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
-    </div>
-  </nav>
+    <a href="/logout" class="btn btn-ghost btn-sm">{{ 'બહાર' if lang == 'gu' else 'Log out' }}</a>
+  </div>
+</nav>
 
   <div class="container-md" style="padding-top: 32px; padding-bottom: 64px;">
 
