@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Symptom Analysis — ArogyaAI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    @media (max-width: 640px) { .analysis-grid { grid-template-columns: 1fr; } }
+
+    .meta-card {
+      background: var(--surface, rgba(255,255,255,0.04));
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .meta-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .meta-label { font-size: 0.75rem; color: var(--muted, #64748b); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+    .meta-value { font-size: 1rem; font-weight: 700; }
+
+    .risk-low    { background: rgba(16,185,129,0.08);  border-color: rgba(16,185,129,0.2); }
+    .risk-medium { background: rgba(245,158,11,0.08);  border-color: rgba(245,158,11,0.2); }
+    .risk-high   { background: rgba(239,68,68,0.08);   border-color: rgba(239,68,68,0.2); }
+    .risk-low    .meta-value { color: #6ee7b7; }
+    .risk-medium .meta-value { color: #fcd34d; }
+    .risk-high   .meta-value { color: #fca5a5; }
+    .risk-low    .meta-icon  { background: rgba(16,185,129,0.15); }
+    .risk-medium .meta-icon  { background: rgba(245,158,11,0.15); }
+    .risk-high   .meta-icon  { background: rgba(239,68,68,0.15); }
+
+    .section-card { background: var(--surface, rgba(255,255,255,0.04)); border: 1px solid var(--border, rgba(255,255,255,0.08)); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+    .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border, rgba(255,255,255,0.08)); }
+    .section-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(16,185,129,0.12); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .section-title { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .findings-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .finding-item { display: flex; align-items: flex-start; gap: 10px; font-size: 0.93rem; line-height: 1.6; color: rgba(240,244,255,0.85); }
+    .finding-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; flex-shrink: 0; margin-top: 7px; }
+
+    .action-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .action-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 10px; font-size: 0.9rem; line-height: 1.6; color: rgba(240,244,255,0.85); }
+    .action-num { width: 22px; height: 22px; background: linear-gradient(135deg, #10b981, #06b6d4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: white; flex-shrink: 0; }
+
+    .doctor-box { padding: 14px 16px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; font-size: 0.9rem; color: #fca5a5; line-height: 1.6; }
+
+    .symptoms-quoted { padding: 14px 16px; background: rgba(255,255,255,0.03); border-left: 3px solid #10b981; border-radius: 0 10px 10px 0; font-size: 0.9rem; color: rgba(240,244,255,0.6); font-style: italic; margin-bottom: 24px; }
+
+    .lang-tabs { display: flex; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 20px; }
+    .lang-tab { flex: 1; padding: 10px 16px; border-radius: 9px; font-size: 0.88rem; font-weight: 600; color: var(--muted, #64748b); background: none; border: none; cursor: pointer; transition: all 0.2s; }
+    .lang-tab.active { background: linear-gradient(135deg, #10b981, #06b6d4); color: white; box-shadow: 0 2px 12px rgba(16,185,129,0.3); }
+    .lang-panel { display: none; }
+    .lang-panel.active { display: block; }
+
+    .confidence-bar-wrap { width: 100%; background: rgba(255,255,255,0.08); border-radius: 999px; height: 5px; margin-top: 6px; }
+    .confidence-bar { height: 5px; border-radius: 999px; background: linear-gradient(90deg, #10b981, #06b6d4); }
+
+    .disclaimer-box { display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; font-size: 0.82rem; color: #fcd34d; margin-top: 20px; line-height: 1.5; }
+
+    .explanation-text { font-size: 0.97rem; line-height: 1.9; color: rgba(240,244,255,0.82); }
+    .gujarati-text { font-size: 1.05rem; line-height: 2.1; }
+  </style>
+</head>
+<body>
+
+<div class="bg-scene">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<div class="page">
+
+  <nav class="navbar">
+    <a href="/" class="nav-brand">ArogyaAI</a>
+    <div class="nav-center">
+      <a href="/" class="nav-link">📄 Reports</a>
+      <a href="/analyze-symptoms" class="nav-link" style="color:#6ee7b7;">🩺 Symptoms</a>
+      <a href="/history" class="nav-link">📋 History</a>
+    </div>
+    <div class="nav-right">
+      <a href="/analyze-symptoms" class="btn btn-ghost btn-sm">← New Analysis</a>
+      <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
+    </div>
+  </nav>
+
+  <div class="container-md" style="padding-top: 32px; padding-bottom: 64px;">
+
+    <!-- Header -->
+    <div style="text-align:center; margin-bottom: 28px;">
+      <span class="badge badge-success" style="margin-bottom:14px; display:inline-flex;">
+        ✅ Analysis Complete
+      </span>
+      <h1 style="font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 12px;">
+        Your Symptom Analysis
+      </h1>
+      <div class="symptoms-quoted" style="max-width:600px; margin: 0 auto;">
+        "{{ symptoms }}"
+      </div>
+    </div>
+
+    <!-- Meta cards -->
+    <div class="analysis-grid">
+
+      <!-- Confidence -->
+      <div class="meta-card" style="background:rgba(6,182,212,0.06); border-color:rgba(6,182,212,0.2);">
+        <div class="meta-icon" style="background:rgba(6,182,212,0.15);">🎯</div>
+        <div style="flex:1;">
+          <div class="meta-label">AI Confidence</div>
+          <div class="meta-value" style="color:#67e8f9;">{{ analysis.confidence }}%</div>
+          <div class="confidence-bar-wrap">
+            <div class="confidence-bar" style="width:{{ analysis.confidence }}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Level -->
+      <div class="meta-card risk-{{ analysis.risk_level | lower }}">
+        <div class="meta-icon">
+          {% if analysis.risk_level == 'LOW' %}🟢
+          {% elif analysis.risk_level == 'MEDIUM' %}🟡
+          {% else %}🔴{% endif %}
+        </div>
+        <div>
+          <div class="meta-label">Risk Level</div>
+          <div class="meta-value">
+            {% if analysis.risk_level == 'LOW' %}Low Risk
+            {% elif analysis.risk_level == 'MEDIUM' %}Medium Risk
+            {% else %}High Risk — See Doctor{% endif %}
+          </div>
+          <div style="font-size:0.78rem; margin-top:3px; opacity:0.8;">{{ analysis.risk_reason }}</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- When to see doctor — always shown prominently -->
+    {% if analysis.risk_level == 'HIGH' %}
+    <div class="doctor-box" style="margin-bottom:20px; display:flex; gap:10px; align-items:flex-start;">
+      🚨 <span><strong>See a doctor immediately!</strong> {{ analysis.when_to_see_doctor }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Language Tabs -->
+    <div class="lang-tabs">
+      <button class="lang-tab active" onclick="switchLang('english', this)">🇬🇧 English</button>
+      <button class="lang-tab" onclick="switchLang('gujarati', this)">🇮🇳 ગુજરાતી</button>
+    </div>
+
+    <!-- ENGLISH PANEL -->
+    <div id="panel-english" class="lang-panel active">
+
+      <!-- Possible Causes -->
+      {% if analysis.possible_causes %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon">🔍</div>
+          <div class="section-title">Possible Causes</div>
+        </div>
+        <ul class="findings-list">
+          {% for cause in analysis.possible_causes %}
+          <li class="finding-item">
+            <div class="finding-dot"></div>
+            {{ cause }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- What It Means -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon">💬</div>
+          <div class="section-title">What This Means</div>
+        </div>
+        <p class="explanation-text">{{ analysis.what_it_means }}</p>
+      </div>
+
+      <!-- Action Steps -->
+      {% if analysis.action_steps %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon">✅</div>
+          <div class="section-title">What To Do Now</div>
+        </div>
+        <ul class="action-list">
+          {% for i, action in enumerate(analysis.action_steps) %}
+          <li class="action-item">
+            <div class="action-num">{{ i + 1 }}</div>
+            {{ action }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Home Remedies -->
+      {% if analysis.home_remedies %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon">🏠</div>
+          <div class="section-title">Safe Home Remedies</div>
+        </div>
+        <ul class="findings-list">
+          {% for remedy in analysis.home_remedies %}
+          <li class="finding-item">
+            <div class="finding-dot" style="background:#06b6d4;"></div>
+            {{ remedy }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- When to see doctor -->
+      <div class="doctor-box" style="display:flex; gap:10px; align-items:flex-start;">
+        🏥 <span><strong>When to see a doctor:</strong> {{ analysis.when_to_see_doctor }}</span>
+      </div>
+
+    </div>
+
+    <!-- GUJARATI PANEL -->
+    <div id="panel-gujarati" class="lang-panel">
+
+      <!-- Gujarati Summary -->
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon">💬</div>
+          <div class="section-title">સરળ સમજૂતી</div>
+        </div>
+        <p class="explanation-text gujarati-text">{{ analysis.gujarati_summary }}</p>
+      </div>
+
+      <!-- Gujarati Actions -->
+      {% if analysis.gujarati_action_steps %}
+      <div class="section-card">
+        <div class="section-header">
+          <div class="section-icon">✅</div>
+          <div class="section-title">શું કરવું જોઈએ</div>
+        </div>
+        <ul class="action-list">
+          {% for i, action in enumerate(analysis.gujarati_action_steps) %}
+          <li class="action-item">
+            <div class="action-num">{{ i + 1 }}</div>
+            {{ action }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <div class="doctor-box" style="display:flex; gap:10px; align-items:flex-start;">
+        🏥 <span><strong>ડૉક્ટર ક્યારે મળવું:</strong> લક્ષણો વધુ ખરાબ થાય અથવા ૨-૩ દિવસથી વધુ રહે તો તરત ડૉક્ટરને મળો.</span>
+      </div>
+
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer-box">
+      ⚠️ <span><strong>Important Disclaimer:</strong> ArogyaAI provides general health information only. This is NOT a medical diagnosis. Please consult a qualified doctor before taking any medical decisions. | આ તબીબી નિદાન નથી. કૃપા કરી ડૉક્ટરની સલાહ અવશ્ય લો.</span>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">
+      <a href="/analyze-symptoms" class="btn btn-primary" style="background:linear-gradient(135deg,#10b981,#06b6d4); box-shadow:0 0 20px rgba(16,185,129,0.3);">
+        🩺 Analyze New Symptoms
+      </a>
+      <a href="/" class="btn btn-ghost">📄 Upload Report</a>
+      <a href="/history" class="btn btn-ghost">📋 History</a>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <span>ArogyaAI</span>
+    <span>© 2026 · Not a substitute for medical advice</span>
+  </footer>
+
+</div>
+
+<script>
+function switchLang(lang, el) {
+  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.lang-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + lang).classList.add('active');
+}
+</script>
+
+<script src="/static/script.js"></script>
+</body>
+</html>

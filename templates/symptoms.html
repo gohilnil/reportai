@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Symptom Analyzer — ArogyaAI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .symptom-card {
+      background: var(--surface, rgba(255,255,255,0.04));
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+      border-radius: 24px;
+      padding: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .symptom-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(16,185,129,0.5), rgba(6,182,212,0.5), transparent);
+    }
+    .symptom-textarea {
+      width: 100%;
+      min-height: 140px;
+      padding: 16px;
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      color: #f0f4ff;
+      font-size: 1rem;
+      font-family: var(--font-body, 'DM Sans', sans-serif);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .symptom-textarea::placeholder { color: rgba(100,116,139,0.7); }
+    .symptom-textarea:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
+    }
+    .example-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .chip {
+      padding: 6px 14px;
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 999px;
+      font-size: 0.8rem;
+      color: #6ee7b7;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip:hover {
+      background: rgba(16,185,129,0.15);
+      border-color: rgba(16,185,129,0.4);
+    }
+    .disclaimer-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 16px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px;
+      font-size: 0.82rem;
+      color: #fcd34d;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+    .btn-health {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      box-shadow: 0 0 20px rgba(16,185,129,0.3);
+    }
+    .btn-health:hover {
+      box-shadow: 0 0 32px rgba(16,185,129,0.5);
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-scene">
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<div class="page">
+
+  <nav class="navbar">
+    <a href="/" class="nav-brand">ArogyaAI</a>
+    <div class="nav-center">
+      <a href="/" class="nav-link">📄 Reports</a>
+      <a href="/analyze-symptoms" class="nav-link" style="color:#6ee7b7;">🩺 Symptoms</a>
+      <a href="/history" class="nav-link">📋 History</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="nav-avatar">{{ current_user.name[0].upper() }}</div>
+        {{ current_user.name.split()[0] }}
+      </div>
+      <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
+    </div>
+  </nav>
+
+  <section class="hero" style="padding-bottom: 32px;">
+    <div class="hero-eyebrow">
+      <span class="badge badge-success">🩺 AI Health Assistant</span>
+      <span class="badge badge-accent">🇮🇳 English + ગુજરાતી</span>
+    </div>
+    <h1 class="hero-title">
+      Describe Your <span class="gradient">Symptoms</span>
+    </h1>
+    <p class="hero-sub">
+      Tell us how you're feeling in your own words. Our AI will help you understand possible causes and what to do next.
+    </p>
+  </section>
+
+  <div class="container-sm" style="padding-bottom: 64px;">
+
+    {% if error %}
+    <div class="alert alert-error" style="margin-bottom: 18px;">
+      <span class="alert-icon">⚠</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div class="symptom-card">
+      <form action="/analyze-symptoms" method="POST" id="symptomForm">
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size:0.82rem; font-weight:600; color:rgba(100,116,139,1); text-transform:uppercase; letter-spacing:0.05em;">
+            Describe your symptoms
+          </label>
+        </div>
+
+        <textarea
+          class="symptom-textarea"
+          name="symptoms"
+          id="symptomsInput"
+          placeholder="Example: I have a headache since morning, mild fever, and feel very tired. I also have a sore throat..."
+          required
+          minlength="10"
+        ></textarea>
+
+        <!-- Example chips -->
+        <div style="margin-bottom: 8px; font-size:0.78rem; color:rgba(100,116,139,0.8);">Quick examples (click to use):</div>
+        <div class="example-chips">
+          <span class="chip" onclick="fillSymptom('Headache, fever, body pain since 2 days')">🤒 Fever & Headache</span>
+          <span class="chip" onclick="fillSymptom('Stomach pain, loose motions, nausea')">🤢 Stomach Issues</span>
+          <span class="chip" onclick="fillSymptom('Chest pain, shortness of breath, dizziness')">💔 Chest Pain</span>
+          <span class="chip" onclick="fillSymptom('Cold, runny nose, sneezing, mild cough')">🤧 Cold & Cough</span>
+          <span class="chip" onclick="fillSymptom('Back pain, difficulty sitting, pain for 3 days')">🔙 Back Pain</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full btn-health" id="symptomBtn">
+          <span id="symptomBtnLabel">🩺 Analyze My Symptoms</span>
+        </button>
+
+        <div class="disclaimer-box">
+          ⚠️ <span><strong>Disclaimer:</strong> This is not a medical diagnosis. ArogyaAI provides general health information only. Always consult a qualified doctor for medical advice. | આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.</span>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Also upload report -->
+    <div style="text-align:center; margin-top:28px;">
+      <p style="color:rgba(100,116,139,0.7); font-size:0.88rem; margin-bottom:12px;">Or upload a medical report for detailed analysis</p>
+      <a href="/" class="btn btn-ghost">📄 Upload PDF Report</a>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <span>ArogyaAI</span>
+    <span>© 2026 · Not a substitute for medical advice</span>
+    <div class="footer-right">
+      <a href="/history" class="footer-link">History</a>
+      <a href="/logout" class="footer-link">Log out</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+function fillSymptom(text) {
+  document.getElementById('symptomsInput').value = text;
+  document.getElementById('symptomsInput').focus();
+}
+
+document.getElementById('symptomForm').addEventListener('submit', function() {
+  const btn = document.getElementById('symptomBtn');
+  const label = document.getElementById('symptomBtnLabel');
+  btn.disabled = true;
+  label.textContent = '⏳ AI is analyzing your symptoms…';
+});
+</script>
+
+<script src="/static/script.js"></script>
+</body>
+</html>

@@ -268,7 +268,143 @@ def parse_ai_response(response, doc_type):
 
     return result
 
+def analyze_symptoms(symptoms_text):
+    """Analyze user symptoms and return structured health guidance"""
+    
+    prompt = f"""You are ArogyaAI, a compassionate AI health assistant for Indian users.
+A user has described their symptoms. Provide helpful health guidance in simple language.
+
+IMPORTANT RULES:
+- Never diagnose. Always say "possible causes" not "you have"
+- Use very simple words that common people understand
+- Always recommend seeing a doctor for serious symptoms
+- Be caring and reassuring in tone
+
+USER SYMPTOMS:
+{symptoms_text}
+
+Respond in this EXACT format:
+
+CONFIDENCE_SCORE: [0-100 how well you understood the symptoms]
+
+RISK_LEVEL: [Choose exactly one: LOW or MEDIUM or HIGH]
+RISK_REASON: [One simple sentence why]
+
+POSSIBLE_CAUSES:
+- [Possible cause 1 in simple words]
+- [Possible cause 2]
+- [Possible cause 3 if applicable]
+
+WHAT_IT_MEANS:
+[2-3 sentences explaining what these symptoms might mean in very simple English. Be reassuring but honest.]
+
+ACTION_STEPS:
+- [Action 1 - most important thing to do]
+- [Action 2]
+- [Action 3]
+
+HOME_REMEDIES:
+- [Simple safe home remedy 1 if applicable]
+- [Simple safe home remedy 2 if applicable]
+
+WHEN_TO_SEE_DOCTOR:
+[One clear sentence about when they must see a doctor immediately]
+
+GUJARATI_SUMMARY:
+[Write a simple 3-4 sentence summary in everyday Gujarati explaining the symptoms and what to do]
+
+GUJARATI_ACTION_STEPS:
+- [Action 1 in Gujarati]
+- [Action 2 in Gujarati]
+- [Action 3 in Gujarati]
+
+DISCLAIMER: આ તબીબી નિદાન નથી. કૃપા કરી ડૉક્ટરની સલાહ લો. / This is not a medical diagnosis. Please consult a doctor."""
+
+    chat_completion = groq_client.chat.completions.create(
+        messages=[{"role": "user", "content": prompt}],
+        model="llama-3.3-70b-versatile",
+        max_tokens=2000,
+        temperature=0.3,
+    )
+    
+    response = chat_completion.choices[0].message.content
+    return parse_symptoms_response(response)
+
+
+def parse_symptoms_response(response):
+    """Parse symptom analysis response"""
+    
+    result = {
+        'confidence': 80,
+        'risk_level': 'LOW',
+        'risk_reason': 'Symptoms appear mild.',
+        'possible_causes': [],
+        'what_it_means': '',
+        'action_steps': [],
+        'home_remedies': [],
+        'when_to_see_doctor': 'See a doctor if symptoms worsen or persist.',
+        'gujarati_summary': '',
+        'gujarati_action_steps': [],
+    }
+
+    def extract_section(text, start_marker, end_markers):
+        if start_marker not in text:
+            return ''
+        start = text.index(start_marker) + len(start_marker)
+        end = len(text)
+        for marker in end_markers:
+            if marker in text[start:]:
+                end = start + text[start:].index(marker)
+                break
+        return text[start:end].strip()
+
+    def extract_bullets(text, marker, end_markers):
+        section = extract_section(text, marker, end_markers)
+        bullets = []
+        for line in section.split('\n'):
+            line = line.strip()
+            if line.startswith(('•', '-', '*')):
+                clean = line.lstrip('•-* ').strip()
+                if clean:
+                    bullets.append(clean)
+        return bullets
+
+    # Confidence
+    if 'CONFIDENCE_SCORE:' in response:
+        conf = extract_section(response, 'CONFIDENCE_SCORE:', ['RISK_LEVEL:'])
+        digits = ''.join(filter(str.isdigit, conf.split('\n')[0]))
+        if digits:
+            result['confidence'] = min(int(digits[:3]), 100)
+
+    # Risk level
+    if 'RISK_LEVEL:' in response:
+        risk = extract_section(response, 'RISK_LEVEL:', ['RISK_REASON:', 'POSSIBLE_CAUSES:']).split('\n')[0].upper()
+        if 'HIGH' in risk:
+            result['risk_level'] = 'HIGH'
+        elif 'MEDIUM' in risk:
+            result['risk_level'] = 'MEDIUM'
+        else:
+            result['risk_level'] = 'LOW'
+
+    # Risk reason
+    if 'RISK_REASON:' in response:
+        result['risk_reason'] = extract_section(
+            response, 'RISK_REASON:', ['POSSIBLE_CAUSES:', 'WHAT_IT_MEANS:']).split('\n')[0].strip()
+
+    result['possible_causes']       = extract_bullets(response, 'POSSIBLE_CAUSES:', ['WHAT_IT_MEANS:', 'ACTION_STEPS:'])
+    result['what_it_means']         = extract_section(response, 'WHAT_IT_MEANS:', ['ACTION_STEPS:', 'HOME_REMEDIES:'])
+    result['action_steps']          = extract_bullets(response, 'ACTION_STEPS:', ['HOME_REMEDIES:', 'WHEN_TO_SEE_DOCTOR:'])
+    result['home_remedies']         = extract_bullets(response, 'HOME_REMEDIES:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:'])
+    result['when_to_see_doctor']    = extract_section(response, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:', 'GUJARATI_ACTION_STEPS:']).split('\n')[0].strip()
+    result['gujarati_summary']      = extract_section(response, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:', 'DISCLAIMER:'])
+    result['gujarati_action_steps'] = extract_bullets(response, 'GUJARATI_ACTION_STEPS:', ['DISCLAIMER:', 'END'])
+
+    if not result['what_it_means']:
+        result['what_it_means'] = response[:300]
+
+    return result
 # ─── Routes ────────────────────────────────────────────────────
+APP_NAME = "ArogyaAI"
 
 FREE_REPORT_LIMIT = 2
 
@@ -410,6 +546,32 @@ def view_report(report_id):
 
 # ─── Init DB & Run ─────────────────────────────────────────────
 app.jinja_env.globals.update(enumerate=enumerate)
+
+@app.route('/analyze-symptoms', methods=['GET', 'POST'])
+@login_required
+def analyze_symptoms_route():
+    if request.method == 'POST':
+        symptoms = request.form.get('symptoms', '').strip()
+        
+        if not symptoms:
+            return render_template('symptoms.html', 
+                error="Please describe your symptoms.")
+        
+        if len(symptoms) < 10:
+            return render_template('symptoms.html',
+                error="Please describe your symptoms in more detail.")
+
+        try:
+            analysis = analyze_symptoms(symptoms)
+        except Exception as e:
+            return render_template('symptoms.html',
+                error=f"AI error: {str(e)}")
+
+        return render_template('symptoms_result.html',
+            analysis=analysis,
+            symptoms=symptoms)
+
+    return render_template('symptoms.html')
 
 with app.app_context():
     db.create_all()
