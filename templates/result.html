@@ -70,7 +70,7 @@
           {% elif analysis.risk_level == 'MEDIUM' %}⚠️
           {% else %}🚨{% endif %}
         </div>
-        <div>
+         <div>
           <div class="meta-label">{{ 'જોખમ મૂલ્યાંકન' if lang == 'gu' else 'Risk Assessment' }}</div>
           <div class="meta-value">
             {% if analysis.risk_level == 'LOW' %}
@@ -93,17 +93,13 @@
     <div class="doctor-box card-3d animate-in delay-4" style="margin-bottom:18px;">
       <div class="card-glow-overlay"></div>
       <div style="font-size:1.4rem; flex-shrink:0;">🚨</div>
-      <div>
-        <strong style="color:white;">
-          {{ 'તરત ડૉક્ટરને મળો!' if lang == 'gu' else 'See a doctor immediately!' }}
-        </strong>
-        {{ analysis.risk_reason }}
-      </div>
+      <div><strong style="color:white;">{{ 'તરત ડૉક્ટરને મળો!' if lang == 'gu' else 'See a doctor immediately!' }}</strong> {{ analysis.risk_reason }}</div>
     </div>
     {% endif %}
 
     <!-- LANGUAGE TABS -->
     <div class="result-tabs animate-in delay-4">
+      <div class="tab-indicator"></div>
       <button class="result-tab active" data-tab="english">🇬🇧 English</button>
       <button class="result-tab" data-tab="gujarati">🇮🇳 ગુજરાતી</button>
     </div>
@@ -112,7 +108,7 @@
     <div id="panel-english" class="result-panel active">
 
       {% if analysis.key_findings %}
-      <div class="section-card card-3d animate-in">
+      <div class="section-card card-3d animate-in" style="--mouse-x:0;--mouse-y:0;">
         <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">🔍</div>
@@ -126,7 +122,7 @@
       </div>
       {% endif %}
 
-      <div class="section-card card-3d animate-in">
+      <div class="section-card card-3d animate-in" style="--mouse-x:0;--mouse-y:0;">
         <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">💬</div>
@@ -136,7 +132,7 @@
       </div>
 
       {% if analysis.action_items %}
-      <div class="section-card card-3d animate-in">
+      <div class="section-card card-3d animate-in" style="--mouse-x:0;--mouse-y:0;">
         <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">✅</div>
@@ -150,7 +146,7 @@
       </div>
       {% endif %}
 
-      <div class="doctor-box card-3d animate-in" style="background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
+      <div class="doctor-box card-3d animate-in" style="--mouse-x:0;--mouse-y:0; background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
         <div class="card-glow-overlay"></div>
         <div style="font-size:1.4rem; flex-shrink:0;">👨‍⚕️</div>
         <div><strong>When to see a doctor:</strong> {{ analysis.risk_reason or 'Consult a doctor if you have any concerns.' }}</div>
@@ -162,7 +158,7 @@
     <div id="panel-gujarati" class="result-panel">
 
       {% if analysis.gujarati_key_findings %}
-      <div class="section-card card-3d animate-in">
+      <div class="section-card card-3d animate-in" style="--mouse-x:0;--mouse-y:0;">
         <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">🔍</div>
@@ -170,13 +166,13 @@
         </div>
         <ul class="findings-list">
           {% for finding in analysis.gujarati_key_findings %}
-          <li class="finding-item"><div class="finding-dot"></div><div class="gujarati-text">{{ finding }}</div></li>
+          <li class="finding-item"><div class="finding-dot"></div><div>{{ finding }}</div></li>
           {% endfor %}
         </ul>
       </div>
       {% endif %}
 
-      <div class="section-card card-3d animate-in">
+      <div class="section-card card-3d animate-in" style="--mouse-x:0;--mouse-y:0;">
         <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">💬</div>
@@ -186,33 +182,30 @@
       </div>
 
       {% if analysis.gujarati_action_items %}
-      <div class="section-card card-3d animate-in">
+      <div class="section-card card-3d animate-in" style="--mouse-x:0;--mouse-y:0;">
         <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">✅</div>
           <div class="section-title">તમારે શું કરવું જોઈએ</div>
         </div>
-        <ul class="action-list">
+        <ul class="action-list gujarati-text">
           {% for i, action in enumerate(analysis.gujarati_action_items) %}
-          <li class="action-item gujarati-text"><div class="action-num">{{ i + 1 }}</div><div>{{ action }}</div></li>
+          <li class="action-item"><div class="action-num">{{ i + 1 }}</div><div>{{ action }}</div></li>
           {% endfor %}
         </ul>
       </div>
       {% endif %}
 
-      <div class="doctor-box card-3d animate-in" style="background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
+      <div class="doctor-box card-3d animate-in" style="--mouse-x:0;--mouse-y:0; background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
         <div class="card-glow-overlay"></div>
         <div style="font-size:1.4rem; flex-shrink:0;">👨‍⚕️</div>
-        <div class="gujarati-text">
-          <strong>ડૉક્ટરને ક્યારે મળવું:</strong>
-          જો તબિયત બગડે અથવા કોઈ ચિંતા હોય તો તરત ડૉક્ટરની સલાહ લો.
-        </div>
+        <div class="gujarati-text"><strong>ડૉક્ટરને ક્યારે મળવું...</strong> જો તબિયત બગડે અથવા કોઈ ચિંતા હોય તો તરત ડૉક્ટરની સલાહ લો.</div>
       </div>
 
     </div>
 
     <!-- DISCLAIMER -->
-    <div class="disclaimer-box card-3d animate-in delay-4" style="margin-bottom:32px;">
+    <div class="disclaimer-box card-3d animate-in delay-4" style="--mouse-x:0;--mouse-y:0; margin-bottom:32px;">
       <div class="card-glow-overlay"></div>
       <div style="font-size:1.4rem; flex-shrink:0;">⚠️</div>
       <div>
