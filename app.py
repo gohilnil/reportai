@@ -11,7 +11,8 @@ from datetime import datetime
 load_dotenv()
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
+import tempfile
+app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-123'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db')
