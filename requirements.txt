@@ -8,3 +8,4 @@ groq
 razorpay
 gunicorn
 flask-dance
+psycopg2-binary
