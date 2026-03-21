@@ -1,6 +1,6 @@
 """
 ArogyaAI — AI-powered health assistant for Bharat
-Complete production app with Google OAuth, Admin, Payments
+Production-grade Flask application
 """
 
 import os
@@ -29,7 +29,7 @@ from groq import Groq
 from dotenv import load_dotenv
 import razorpay
 
-from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.contrib.google import make_google_blueprint
 from flask_dance.consumer import oauth_authorized
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage
 
@@ -45,19 +45,19 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-ALLOWED_EXTENSIONS        = {'pdf'}
-ALLOWED_IMAGE_EXTENSIONS  = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
-MAX_CONTENT_MB            = 10
-MAX_IMAGE_MB              = 5
-FREE_REPORT_LIMIT         = 999
-MAX_PDF_CHARS             = 4000
-MIN_SYMPTOM_LENGTH        = 10
-SUPPORTED_LANGUAGES       = ('en', 'gu')
+ALLOWED_EXTENSIONS       = {'pdf'}
+ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
+MAX_CONTENT_MB           = 10
+MAX_IMAGE_MB             = 5
+FREE_REPORT_LIMIT        = 999
+MAX_PDF_CHARS            = 4000
+MIN_SYMPTOM_LENGTH       = 10
+SUPPORTED_LANGUAGES      = ('en', 'gu')
 
 PLANS = {
     'starter': {'name': 'Starter', 'price': 49,  'reports': 10,  'popular': False},
-    'popular':  {'name': 'Popular', 'price': 99,  'reports': 25,  'popular': True},
-    'pro':      {'name': 'Pro',     'price': 199, 'reports': 60,  'popular': False},
+    'popular': {'name': 'Popular', 'price': 99,  'reports': 25,  'popular': True},
+    'pro':     {'name': 'Pro',     'price': 199, 'reports': 60,  'popular': False},
 }
 
 # ─────────────────────────────────────────────
@@ -65,9 +65,14 @@ PLANS = {
 # ─────────────────────────────────────────────
 
 app = Flask(__name__)
+
+database_url = os.getenv('DATABASE_URL', 'sqlite:///arogyaai.db')
+if database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
 app.config.update(
     SECRET_KEY                     = os.getenv('SECRET_KEY', 'dev-secret-change-in-prod'),
-    SQLALCHEMY_DATABASE_URI        = os.getenv('DATABASE_URL', 'sqlite:///arogyaai.db'),
+    SQLALCHEMY_DATABASE_URI        = database_url,
     SQLALCHEMY_TRACK_MODIFICATIONS = False,
     MAX_CONTENT_LENGTH             = MAX_CONTENT_MB * 1024 * 1024,
     UPLOAD_FOLDER                  = tempfile.gettempdir(),
@@ -113,21 +118,21 @@ TRANSLATIONS = {
         'upload_first':   'Upload your first PDF to get started',
     },
     'gu': {
-        'app_name':       'આરોગ્યAI',
-        'tagline':        'તમારો AI સ્વાસ્થ્ય સહાયક',
-        'nav_reports':    'રિપોર્ટ',
-        'nav_symptoms':   'લક્ષણો',
-        'nav_history':    'ઇતિહાસ',
-        'nav_image':      'ઇમેજ',
-        'upload_title':   'કોઈ પણ રિપોર્ટ સમજો',
-        'upload_sub':     'તમારો મેડિકલ રિપોર્ટ અપલોડ કરો — સરળ ભાષામાં તરત સમજૂતી મેળવો.',
-        'symptom_title':  'તમારા લક્ષણો જણાવો',
-        'symptom_sub':    'ટાઇપ કરો અથવા બોલો. AI તમને માર્ગદર્શન આપશે.',
-        'free_left':      'મફત રિપોર્ટ બાકી',
-        'logout':         'બહાર',
-        'disclaimer':     'આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.',
-        'no_reports_yet': 'હજી કોઈ રિપોર્ટ નથી',
-        'upload_first':   'શરૂ કરવા પ્રથમ PDF અપલોડ કરો',
+        'app_name':       'ArogyaAI',
+        'tagline':        'તмаро AI સ્васть્ย сахаयक',
+        'nav_reports':    'рипорт',
+        'nav_symptoms':   'лакшано',
+        'nav_history':    'итихас',
+        'nav_image':      'имеж',
+        'upload_title':   'кои пан рипорт самжо',
+        'upload_sub':     'тмаро медикал рипорт апалод кро — сарал бхашама тарат самжути мелаво.',
+        'symptom_title':  'тмара лакшано джанаво',
+        'symptom_sub':    'тайп кро атхава боло. AI тмане маргадаршан ападше.',
+        'free_left':      'мафат рипорт баки',
+        'logout':         'бахар',
+        'disclaimer':     'а табиби нидан натхи. Докторни салах авашйа ло.',
+        'no_reports_yet': 'хаджи кои рипорт натхи',
+        'upload_first':   'шару карва пратхам PDF апалод кро',
     }
 }
 
@@ -137,17 +142,17 @@ TRANSLATIONS = {
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    id             = db.Column(db.Integer, primary_key=True)
-    name           = db.Column(db.String(100), nullable=False)
-    email          = db.Column(db.String(150), unique=True, nullable=False, index=True)
-    password_hash  = db.Column(db.String(256), nullable=False)
-    reports_used   = db.Column(db.Integer, default=0, nullable=False)
-    reports_limit  = db.Column(db.Integer, default=FREE_REPORT_LIMIT, nullable=False)
-    is_paid        = db.Column(db.Boolean, default=False, nullable=False)
-    is_admin       = db.Column(db.Boolean, default=False, nullable=False)
-    created_at     = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    reports        = db.relationship('Report', backref='user', lazy='dynamic', cascade='all, delete-orphan')
-    payments       = db.relationship('Payment', backref='user', lazy='dynamic')
+    id            = db.Column(db.Integer, primary_key=True)
+    name          = db.Column(db.String(100), nullable=False)
+    email         = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256), nullable=False)
+    reports_used  = db.Column(db.Integer, default=0, nullable=False)
+    reports_limit = db.Column(db.Integer, default=FREE_REPORT_LIMIT, nullable=False)
+    is_paid       = db.Column(db.Boolean, default=False, nullable=False)
+    is_admin      = db.Column(db.Boolean, default=False, nullable=False)
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    reports       = db.relationship('Report', backref='user', lazy='dynamic', cascade='all, delete-orphan')
+    payments      = db.relationship('Payment', backref='user', lazy='dynamic')
 
     @property
     def reports_left(self):
@@ -194,9 +199,6 @@ class Report(db.Model):
     created_at           = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     user_id              = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    def __repr__(self):
-        return f'<Report {self.filename}>'
-
 
 class Payment(db.Model):
     __tablename__       = 'payments'
@@ -208,10 +210,6 @@ class Payment(db.Model):
     status              = db.Column(db.String(20),  default='created')
     created_at          = db.Column(db.DateTime,    default=datetime.utcnow)
     user_id             = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-
-    def __repr__(self):
-        return f'<Payment {self.razorpay_order_id}>'
-
 
 # ─────────────────────────────────────────────
 # GOOGLE OAUTH
@@ -236,45 +234,31 @@ def google_login():
 def google_logged_in(blueprint, token):
     if not token:
         return False
-
     resp = blueprint.session.get('/oauth2/v2/userinfo')
     if not resp.ok:
         return False
-
     info           = resp.json()
     google_user_id = str(info['id'])
     email          = info.get('email', '')
     name           = info.get('name', 'User')
-
-    oauth_record = OAuth.query.filter_by(
-        provider='google',
-        provider_user_id=google_user_id
-    ).first()
-
+    oauth_record   = OAuth.query.filter_by(
+        provider='google', provider_user_id=google_user_id).first()
     if oauth_record:
         login_user(oauth_record.user, remember=True)
-        log.info(f'Google OAuth login: {email}')
         return False
-
     user = User.query.filter_by(email=email).first()
     if not user:
         user = User(name=name, email=email)
         user.set_password(os.urandom(24).hex())
         db.session.add(user)
         db.session.flush()
-        log.info(f'New user via Google: {email}')
-
     oauth_record = OAuth(
-        provider         = 'google',
-        provider_user_id = google_user_id,
-        token            = token,
-        user_id          = user.id,
-    )
+        provider=google_user_id, provider_user_id=google_user_id,
+        token=token, user_id=user.id)
     db.session.add(oauth_record)
     db.session.commit()
     login_user(user, remember=True)
     return False
-
 
 # ─────────────────────────────────────────────
 # AUTH HELPERS
@@ -292,7 +276,6 @@ def admin_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated
-
 
 # ─────────────────────────────────────────────
 # AI HELPERS
@@ -347,7 +330,7 @@ def _extract_bullets(text, start, ends):
     section = _extract_section(text, start, ends)
     results = []
     for line in section.splitlines():
-        line = line.strip().lstrip('•–-* ').strip()
+        line = line.strip().lstrip('•-* ').strip()
         if line and len(line) > 3:
             results.append(line)
     return results
@@ -378,102 +361,48 @@ def allowed_image(filename):
 
 
 def extract_text_from_pdf(filepath):
-    """
-    Smart PDF text extractor:
-    1. Try normal text extraction (fast)
-    2. If text is poor → try OCR on each page (handles scanned PDFs)
-    3. Returns best result
-    """
-    import io
-
-    def clean_text(t):
-        """Remove garbage characters"""
-        lines = [line.strip() for line in t.splitlines() if line.strip()]
-        return '\n'.join(lines)
-
-    def is_good_text(t):
-        """Check if extracted text is meaningful"""
-        if not t or len(t.strip()) < 30:
-            return False
-        # Check ratio of readable characters
-        readable = sum(1 for c in t if c.isalnum() or c.isspace())
-        return readable / max(len(t), 1) > 0.6
-
-    # ── Step 1: Try normal PyMuPDF extraction ──────────
+    """Extract text from PDF using multiple methods"""
     try:
-        doc  = fitz.open(filepath)
+        doc        = fitz.open(filepath)
         pages_text = []
 
         for page in doc:
+            # Method 1: direct text
             page_text = page.get_text('text')
-            if not page_text.strip():
-                # Try blocks method
-                blocks = page.get_text('blocks')
-                page_text = '\n'.join(
-                    b[4] for b in blocks
-                    if isinstance(b[4], str) and b[4].strip()
-                )
+
+            # Method 2: blocks if direct fails
+            if len(page_text.strip()) < 20:
+                try:
+                    blocks    = page.get_text('dict')['blocks']
+                    lines     = []
+                    for block in blocks:
+                        if block.get('type') == 0:
+                            for line in block.get('lines', []):
+                                for span in line.get('spans', []):
+                                    lines.append(span.get('text', ''))
+                    page_text = ' '.join(lines)
+                except Exception:
+                    pass
+
+            # Method 3: rawtext fallback
+            if len(page_text.strip()) < 20:
+                try:
+                    page_text = page.get_text('rawtext')
+                except Exception:
+                    pass
+
             pages_text.append(page_text)
 
         doc.close()
-        normal_text = clean_text('\n'.join(pages_text))
 
-        if is_good_text(normal_text):
-            log.info(f'PDF text extracted normally: {len(normal_text)} chars')
-            return normal_text
+        text   = '\n'.join(pages_text)
+        lines  = [l.strip() for l in text.splitlines() if l.strip()]
+        result = '\n'.join(lines)
+        log.info(f'PDF extracted: {len(result)} chars')
+        return result
 
     except Exception as e:
-        log.error(f'Normal PDF extraction failed: {e}')
-
-    # ── Step 2: Try OCR for scanned/image PDFs ─────────
-    try:
-        import pytesseract
-        from PIL import Image
-        import pdf2image
-
-        log.info('Normal extraction failed — trying OCR...')
-
-        # Convert PDF pages to images
-        images = pdf2image.convert_from_path(
-            filepath,
-            dpi=200,
-            fmt='jpeg',
-        )
-
-        ocr_texts = []
-        for i, image in enumerate(images):
-            # Run OCR on each page image
-            # Try English + Gujarati
-            try:
-                text = pytesseract.image_to_string(
-                    image,
-                    lang='eng+guj',
-                    config='--psm 3'
-                )
-            except Exception:
-                # Fallback to English only
-                text = pytesseract.image_to_string(
-                    image,
-                    lang='eng',
-                    config='--psm 3'
-                )
-            ocr_texts.append(text)
-            log.info(f'OCR page {i+1}: {len(text)} chars extracted')
-
-        ocr_text = clean_text('\n'.join(ocr_texts))
-
-        if is_good_text(ocr_text):
-            log.info(f'OCR successful: {len(ocr_text)} chars')
-            return ocr_text
-        else:
-            log.warning('OCR produced poor results')
-            return ''
-
-    except ImportError:
-        log.warning('OCR packages not installed')
-        return ''
-    except Exception as e:
-        log.error(f'OCR failed: {e}')
+        log.error(f'PDF extraction failed: {e}')
         return ''
 
 
@@ -539,7 +468,7 @@ GUJARATI_ACTION_ITEMS:
         'key_findings':          _extract_bullets(raw, 'KEY_FINDINGS:', ['SIMPLE_EXPLANATION:', 'ACTION_ITEMS:']),
         'simple_explanation':    simple_exp or raw[:400],
         'action_items':          _extract_bullets(raw, 'ACTION_ITEMS:', ['GUJARATI_EXPLANATION:', 'GUJARATI_KEY_FINDINGS:']),
-        'gujarati_explanation':  _extract_section(raw, 'GUJARATI_EXPLANATION:', ['GUJARATI_KEY_FINDINGS:', 'GUJARATI_ACTION_ITEMS:']) or 'સમજૂતી ઉપલબ્ધ નથી.',
+        'gujarati_explanation':  _extract_section(raw, 'GUJARATI_EXPLANATION:', ['GUJARATI_KEY_FINDINGS:', 'GUJARATI_ACTION_ITEMS:']) or 'Samjuti upalabdh nathi.',
         'gujarati_key_findings': _extract_bullets(raw, 'GUJARATI_KEY_FINDINGS:', ['GUJARATI_ACTION_ITEMS:']),
         'gujarati_action_items': _extract_bullets(raw, 'GUJARATI_ACTION_ITEMS:', ['---', 'END']),
     }
@@ -598,15 +527,16 @@ GUJARATI_ACTION_STEPS:
         'action_steps':          _extract_bullets(raw, 'ACTION_STEPS:', ['HOME_REMEDIES:', 'WHEN_TO_SEE_DOCTOR:']),
         'home_remedies':         _extract_bullets(raw, 'HOME_REMEDIES:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:']),
         'when_to_see_doctor':    wtsd or 'See a doctor if symptoms worsen or last more than 2-3 days.',
-        'gujarati_summary':      gsum or 'સમજૂતી ઉપલબ્ધ નથી.',
+        'gujarati_summary':      gsum or 'Samjuti upalabdh nathi.',
         'gujarati_action_steps': _extract_bullets(raw, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
     }
 
 
 def get_image_mime_type(filename):
     ext = filename.rsplit('.', 1)[1].lower()
-    return {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
-            'webp': 'image/webp', 'gif': 'image/gif'}.get(ext, 'image/jpeg')
+    return {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'png': 'image/png', 'webp': 'image/webp',
+            'gif': 'image/gif'}.get(ext, 'image/jpeg')
 
 
 def analyze_image_with_ai(image_path, filename, category='general', context=''):
@@ -627,33 +557,24 @@ def analyze_image_with_ai(image_path, filename, category='general', context=''):
 
     prompt = f"""You are ArogyaAI analyzing a {category} image.
 {category_hints.get(category, category_hints['general'])}{context_line}
-
 Never give definitive diagnosis. Use simple language.
 
 Reply in EXACT format:
 
 CONFIDENCE_SCORE: [0-100]
-
 RISK_LEVEL: [LOW or MEDIUM or HIGH]
 RISK_REASON: [one plain sentence]
-
 WHAT_I_SEE:
-[2-3 sentences describing the image simply]
-
+[2-3 sentences]
 POSSIBLE_ISSUE:
-[2-3 sentences about what this might indicate]
-
+[2-3 sentences]
 ACTION_STEPS:
 • [action 1]
 • [action 2]
-• [action 3]
-
 WHEN_TO_SEE_DOCTOR:
-[one clear sentence]
-
+[one sentence]
 GUJARATI_SUMMARY:
-[3-4 sentences in simple Gujarati]
-
+[3-4 sentences in Gujarati]
 GUJARATI_ACTION_STEPS:
 • [action 1 in Gujarati]
 • [action 2 in Gujarati]"""
@@ -663,12 +584,7 @@ GUJARATI_ACTION_STEPS:
         messages=[{
             'role': 'user',
             'content': [
-                {
-                    'type': 'image_url',
-                    'image_url': {
-                        'url': f'data:{get_image_mime_type(filename)};base64,{image_data}'
-                    }
-                },
+                {'type': 'image_url', 'image_url': {'url': f'data:{get_image_mime_type(filename)};base64,{image_data}'}},
                 {'type': 'text', 'text': prompt}
             ]
         }],
@@ -685,10 +601,9 @@ GUJARATI_ACTION_STEPS:
         'possible_issue':        _extract_section(raw, 'POSSIBLE_ISSUE:', ['ACTION_STEPS:', 'WHEN_TO_SEE_DOCTOR:']) or 'No specific concerns identified.',
         'action_steps':          _extract_bullets(raw, 'ACTION_STEPS:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:']),
         'when_to_see_doctor':    _extract_section(raw, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:']).split('\n')[0].strip() or 'Consult a doctor if concerned.',
-        'gujarati_summary':      _extract_section(raw, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:']) or 'સમજૂતી ઉપલબ્ધ નથી.',
+        'gujarati_summary':      _extract_section(raw, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:']) or 'Samjuti upalabdh nathi.',
         'gujarati_action_steps': _extract_bullets(raw, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
     }
-
 
 # ─────────────────────────────────────────────
 # CONTEXT PROCESSOR
@@ -699,15 +614,10 @@ def inject_globals():
     lang = request.cookies.get('lang', 'en')
     if lang not in SUPPORTED_LANGUAGES:
         lang = 'en'
-    return dict(
-        lang    = lang,
-        t       = TRANSLATIONS[lang],
-        request = request,
-    )
+    return dict(lang=lang, t=TRANSLATIONS[lang], request=request)
 
 
 app.jinja_env.globals.update(enumerate=enumerate)
-
 
 # ─────────────────────────────────────────────
 # ROUTES — AUTH
@@ -768,7 +678,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
 # ─────────────────────────────────────────────
 # ROUTES — LANGUAGE
 # ─────────────────────────────────────────────
@@ -781,7 +690,6 @@ def set_language(lang):
     response.set_cookie('lang', lang, max_age=60*60*24*365, samesite='Lax')
     return response
 
-
 # ─────────────────────────────────────────────
 # ROUTES — REPORT UPLOAD
 # ─────────────────────────────────────────────
@@ -790,11 +698,8 @@ def set_language(lang):
 @login_required
 def index():
     if request.method == 'POST':
-        # if current_user.reports_used >= current_user.reports_limit:
-        #     return render_template('index.html',
-        #         error='You have used all your reports. Please upgrade.',
-        #         show_upgrade=True)
 
+        # Validate file
         file = request.files.get('pdf_file')
         if not file or file.filename == '':
             return render_template('index.html', error='Please select a PDF file.')
@@ -804,22 +709,35 @@ def index():
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
+        # Save file
         try:
             file.save(filepath)
-            text = extract_text_from_pdf(filepath)
         except Exception as e:
-            log.error(f'File error: {e}')
-            return render_template('index.html', error='Could not read file. Please try again.')
+            log.error(f'File save error: {e}')
+            return render_template('index.html', error='Could not save file. Please try again.')
+
+        # Extract text
+        text = ''
+        try:
+            text = extract_text_from_pdf(filepath)
+            log.info(f'Extracted {len(text)} chars from {filename}')
+        except Exception as e:
+            log.error(f'Extraction error: {e}')
         finally:
+            # Always clean up
             if os.path.exists(filepath):
-                try: os.remove(filepath)
-                except: pass
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
 
-    if not text or len(text.strip()) < 50:
-        return render_template('index.html',
-        error='Could not read this PDF. Please make sure it has readable text. You can also try describing your symptoms using the Symptom Analyzer.',
-        show_symptom_link=True)
+        # Check text quality
+        if not text or len(text.strip()) < 10:
+            return render_template('index.html',
+                error='Could not read this PDF. It may be scanned/image-based. Try uploading an image instead.',
+                show_symptom_link=True)
 
+        # AI Analysis
         try:
             doc_type = detect_document_type(text)
             analysis = get_report_analysis(text, doc_type)
@@ -827,23 +745,29 @@ def index():
             log.error(f'AI error: {e}')
             return render_template('index.html', error='AI analysis failed. Please try again.')
 
-        report = Report(
-            filename             = filename,
-            doc_type             = analysis['doc_type'],
-            risk_level           = analysis['risk_level'],
-            english_explanation  = analysis['simple_explanation'],
-            gujarati_explanation = analysis['gujarati_explanation'],
-            user_id              = current_user.id,
-        )
-        db.session.add(report)
-        current_user.reports_used += 1
-        db.session.commit()
+        # Save to DB
+        report = None
+        try:
+            report = Report(
+                filename             = filename,
+                doc_type             = analysis['doc_type'],
+                risk_level           = analysis['risk_level'],
+                english_explanation  = analysis['simple_explanation'],
+                gujarati_explanation = analysis['gujarati_explanation'],
+                user_id              = current_user.id,
+            )
+            db.session.add(report)
+            current_user.reports_used += 1
+            db.session.commit()
+        except Exception as e:
+            log.error(f'DB save error: {e}')
 
         return render_template('result.html',
-            analysis=analysis, filename=filename, report_id=report.id)
+            analysis  = analysis,
+            filename  = filename,
+            report_id = report.id if report else None)
 
     return render_template('index.html')
-
 
 # ─────────────────────────────────────────────
 # ROUTES — SYMPTOMS
@@ -864,10 +788,8 @@ def analyze_symptoms_route():
         except Exception as e:
             log.error(f'Symptom error: {e}')
             return render_template('symptoms.html', error='Analysis failed. Please try again.')
-        return render_template('symptoms_result.html',
-            analysis=analysis, symptoms=symptoms)
+        return render_template('symptoms_result.html', analysis=analysis, symptoms=symptoms)
     return render_template('symptoms.html')
-
 
 # ─────────────────────────────────────────────
 # ROUTES — IMAGE
@@ -898,13 +820,14 @@ def analyze_image_route():
                 error='Analysis failed. Please try a clearer image.')
         finally:
             if os.path.exists(filepath):
-                try: os.remove(filepath)
-                except: pass
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
 
         return render_template('image_result.html',
             analysis=analysis, category=category, context=context)
     return render_template('analyze_image.html')
-
 
 # ─────────────────────────────────────────────
 # ROUTES — HISTORY
@@ -927,15 +850,19 @@ def view_report(report_id):
     if report.user_id != current_user.id:
         return redirect(url_for('history'))
     analysis = {
-        'doc_type': report.doc_type, 'confidence': 90,
-        'risk_level': report.risk_level, 'risk_reason': 'Previously analyzed.',
-        'key_findings': [], 'simple_explanation': report.english_explanation,
-        'action_items': [], 'gujarati_explanation': report.gujarati_explanation,
-        'gujarati_key_findings': [], 'gujarati_action_items': [],
+        'doc_type':              report.doc_type,
+        'confidence':            90,
+        'risk_level':            report.risk_level,
+        'risk_reason':           'Previously analyzed report.',
+        'key_findings':          [],
+        'simple_explanation':    report.english_explanation,
+        'action_items':          [],
+        'gujarati_explanation':  report.gujarati_explanation,
+        'gujarati_key_findings': [],
+        'gujarati_action_items': [],
     }
     return render_template('result.html',
         analysis=analysis, filename=report.filename, report_id=report.id)
-
 
 # ─────────────────────────────────────────────
 # ROUTES — ACCOUNT
@@ -956,7 +883,6 @@ def account():
         total_spent    = total_spent // 100,
         recent_reports = recent_reports,
     )
-
 
 # ─────────────────────────────────────────────
 # ROUTES — PAYMENT
@@ -979,24 +905,18 @@ def create_order():
             return jsonify(error='Invalid plan.'), 400
         plan  = PLANS[plan_id]
         order = razorpay_client.order.create({
-            'amount': plan['price'] * 100,
-            'currency': 'INR',
+            'amount': plan['price'] * 100, 'currency': 'INR',
             'payment_capture': 1,
             'notes': {'user_id': str(current_user.id), 'plan_id': plan_id}
         })
         payment = Payment(
-            razorpay_order_id = order['id'],
-            plan_id           = plan_id,
-            amount            = plan['price'] * 100,
-            user_id           = current_user.id,
-        )
+            razorpay_order_id=order['id'], plan_id=plan_id,
+            amount=plan['price']*100, user_id=current_user.id)
         db.session.add(payment)
         db.session.commit()
-        return jsonify(
-            order_id=order['id'], amount=plan['price']*100,
+        return jsonify(order_id=order['id'], amount=plan['price']*100,
             currency='INR', plan_name=plan['name'],
-            user_name=current_user.name, user_email=current_user.email,
-        )
+            user_name=current_user.name, user_email=current_user.email)
     except Exception as e:
         log.error(f'Order error: {e}')
         return jsonify(error='Could not create order.'), 500
@@ -1026,9 +946,7 @@ def payment_success():
         current_user.reports_limit += plan.get('reports', 0)
         current_user.is_paid        = True
         db.session.commit()
-        log.info(f'Payment success: {current_user.email} → {payment.plan_id}')
-        return jsonify(success=True,
-            reports_added=plan.get('reports', 0),
+        return jsonify(success=True, reports_added=plan.get('reports', 0),
             new_limit=current_user.reports_limit)
     except Exception as e:
         log.error(f'Payment success error: {e}')
@@ -1048,7 +966,6 @@ def payment_failed():
         log.error(f'Payment failed error: {e}')
     return jsonify(success=True)
 
-
 # ─────────────────────────────────────────────
 # ROUTES — ADMIN
 # ─────────────────────────────────────────────
@@ -1066,13 +983,9 @@ def admin_dashboard():
     recent_payments = Payment.query.filter_by(status='paid')\
         .order_by(Payment.created_at.desc()).limit(10).all()
     return render_template('admin.html',
-        total_users    = total_users,
-        paid_users     = paid_users,
-        total_reports  = total_reports,
-        total_revenue  = total_revenue // 100,
-        recent_users   = recent_users,
-        recent_payments = recent_payments,
-    )
+        total_users=total_users, paid_users=paid_users,
+        total_reports=total_reports, total_revenue=total_revenue // 100,
+        recent_users=recent_users, recent_payments=recent_payments)
 
 
 @app.route('/admin/add-credits/<int:user_id>/<int:credits>')
@@ -1082,7 +995,6 @@ def admin_add_credits(user_id, credits):
     user = User.query.get_or_404(user_id)
     user.reports_limit += credits
     db.session.commit()
-    log.info(f'Admin added {credits} credits to {user.email}')
     return redirect(url_for('admin_dashboard'))
 
 
@@ -1097,10 +1009,6 @@ def admin_toggle_admin(user_id):
     return redirect(url_for('admin_dashboard'))
 
 
-# ─────────────────────────────────────────────
-# MAKE ADMIN ROUTE (use once then it auto-disables)
-# ─────────────────────────────────────────────
-
 @app.route('/setup-admin/<secret>/<email>')
 def setup_admin(secret, email):
     if secret != os.getenv('ADMIN_SECRET', 'arogyaai2026secret'):
@@ -1110,8 +1018,7 @@ def setup_admin(secret, email):
         return 'User not found. Please sign up first.', 404
     user.is_admin = True
     db.session.commit()
-    return f'Success! {user.name} ({email}) is now an admin. Visit /admin'
-
+    return f'Success! {user.name} is now admin. Visit /admin'
 
 # ─────────────────────────────────────────────
 # ERROR HANDLERS
@@ -1138,7 +1045,6 @@ def server_error(e):
 @app.route('/health')
 def health():
     return jsonify(status='ok', version='2.0.0'), 200
-
 
 # ─────────────────────────────────────────────
 # STARTUP
