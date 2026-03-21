@@ -694,3 +694,115 @@ img { max-width:100%; }
     border-right:1px solid var(--border-2) !important;
   }
 }
+
+/* ══════════════════════════════════════════
+   NAVBAR CENTERING + MOBILE HEADER FIX
+══════════════════════════════════════════ */
+
+/* DESKTOP: 3-column grid so links are PERFECTLY centered */
+@media (min-width: 769px) {
+  .navbar {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    align-items: center !important;
+  }
+  .nav-brand {
+    grid-column: 1;
+    justify-self: start;
+  }
+  .nav-center {
+    grid-column: 2;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-right {
+    grid-column: 3;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+/* MOBILE: clean, professional header */
+@media (max-width: 768px) {
+
+  /* 3-col grid: [left controls] [centered name] [right spacer] */
+  .navbar {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    align-items: center !important;
+    padding: 0 14px !important;
+    height: 56px !important;
+  }
+
+  /* LEFT: lang toggle + profile */
+  .nav-right {
+    grid-column: 1;
+    order: 1;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+  }
+
+  /* CENTER: ArogyaAI brand name — perfectly centered */
+  .nav-brand {
+    grid-column: 2;
+    order: 2;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center;
+    gap: 0 !important;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    text-align: center;
+  }
+
+  /* Hide logo icon on mobile, keep only text */
+  .nav-logo {
+    display: none !important;
+  }
+
+  /* Brand text stays visible and centered */
+  .nav-brand-text {
+    display: block !important;
+  }
+
+  /* RIGHT spacer — empty, same width as left for balance */
+  .nav-center {
+    display: none !important;
+  }
+
+  /* Compact profile trigger */
+  .profile-trigger {
+    padding: 3px !important;
+    gap: 0 !important;
+  }
+  .profile-trigger .p-name {
+    display: none !important;
+  }
+
+  /* Hide credits pill on mobile */
+  .nav-credits {
+    display: none !important;
+  }
+
+  /* Smaller lang toggle */
+  .lang-toggle {
+    padding: 3px !important;
+  }
+  .lang-toggle-btn {
+    padding: 3px 7px !important;
+    font-size: 0.68rem !important;
+  }
+
+  /* Dropdown safe width */
+  .p-dropdown-menu {
+    right: 0 !important;
+    min-width: 210px !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+}
