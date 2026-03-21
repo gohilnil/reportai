@@ -1,500 +1,486 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-import fitz
+"""
+ArogyaAI — AI-powered health assistant for Bharat
+Production-grade Flask application
+"""
+
 import os
+import re
+import tempfile
+import logging
+from datetime import datetime
+from functools import wraps
+
+from flask import (
+    Flask, render_template, request,
+    redirect, url_for, jsonify, make_response
+)
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import (
+    LoginManager, UserMixin,
+    login_user, logout_user,
+    login_required, current_user
+)
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+import fitz  # PyMuPDF
 from groq import Groq
 from dotenv import load_dotenv
-from datetime import datetime
+
+# ─────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────
 
 load_dotenv()
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+log = logging.getLogger(__name__)
+
+ALLOWED_EXTENSIONS   = {'pdf'}
+MAX_CONTENT_MB       = 10
+FREE_REPORT_LIMIT    = 2
+PAID_REPORTS_PACK    = 25
+PLAN_PRICE_INR       = 99
+MAX_PDF_CHARS        = 4000
+MIN_SYMPTOM_LENGTH   = 15
+SUPPORTED_LANGUAGES  = ('en', 'gu')
+
+# ─────────────────────────────────────────────
+# APP INIT
+# ─────────────────────────────────────────────
+
 app = Flask(__name__)
-import tempfile
-app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
-app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
-app.config['SECRET_KEY'] = 'your-secret-key-change-this-123'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config.update(
+    SECRET_KEY                  = os.getenv('SECRET_KEY', 'dev-secret-change-in-prod'),
+    SQLALCHEMY_DATABASE_URI     = os.getenv('DATABASE_URL', 'sqlite:///arogyaai.db'),
+    SQLALCHEMY_TRACK_MODIFICATIONS = False,
+    MAX_CONTENT_LENGTH          = MAX_CONTENT_MB * 1024 * 1024,
+    UPLOAD_FOLDER               = tempfile.gettempdir(),
+)
 
-# Initialize extensions
-db = SQLAlchemy(app)
+db           = SQLAlchemy(app)
 login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-login_manager.login_message = 'Please log in to use the app.'
+login_manager.login_view    = 'login'
+login_manager.login_message = ''
 
-# Initialize Groq
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-# ─── Database Models ───────────────────────────────────────────
+groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+
+# ─────────────────────────────────────────────
+# TRANSLATIONS
+# ─────────────────────────────────────────────
+
+TRANSLATIONS = {
+    'en': {
+        'app_name':       'ArogyaAI',
+        'tagline':        'Your AI Health Assistant',
+        'nav_reports':    'Reports',
+        'nav_symptoms':   'Symptoms',
+        'nav_history':    'History',
+        'upload_title':   'Understand Any Report',
+        'upload_sub':     'Upload your medical report, bank statement or any PDF — explained in simple words instantly.',
+        'symptom_title':  'Describe Your Symptoms',
+        'symptom_sub':    'Type or speak your symptoms in English or Gujarati. Our AI will guide you.',
+        'free_left':      'free reports left',
+        'logout':         'Log out',
+        'disclaimer':     'This is not a medical diagnosis. Always consult a qualified doctor.',
+        'no_reports_yet': 'No reports yet',
+        'upload_first':   'Upload your first PDF to get started',
+    },
+    'gu': {
+        'app_name':       'આરોગ્યAI',
+        'tagline':        'તમારો AI સ્વાસ્થ્ય સહાયક',
+        'nav_reports':    'રિપોર્ટ',
+        'nav_symptoms':   'લક્ષણો',
+        'nav_history':    'ઇતિહાસ',
+        'upload_title':   'કોઈ પણ રિપોર્ટ સમજો',
+        'upload_sub':     'તમારો મેડિકલ રિપોર્ટ અપલોડ કરો — સરળ ભાષામાં તરત સમજૂતી મેળવો.',
+        'symptom_title':  'તમારા લક્ષણો જણાવો',
+        'symptom_sub':    'ટાઇપ કરો અથવા બોલો. અમારી AI તમને માર્ગદર્શન આપશે.',
+        'free_left':      'મફત રિપોર્ટ બાકી',
+        'logout':         'બહાર',
+        'disclaimer':     'આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.',
+        'no_reports_yet': 'હજી કોઈ રિપોર્ટ નથી',
+        'upload_first':   'શરૂ કરવા પ્રથમ PDF અપલોડ કરો',
+    }
+}
+
+# ─────────────────────────────────────────────
+# DATABASE MODELS
+# ─────────────────────────────────────────────
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-    reports_used = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    reports = db.relationship('Report', backref='user', lazy=True)
+    __tablename__ = 'users'
+
+    id             = db.Column(db.Integer, primary_key=True)
+    name           = db.Column(db.String(100), nullable=False)
+    email          = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    password_hash  = db.Column(db.String(256), nullable=False)
+    reports_used   = db.Column(db.Integer, default=0, nullable=False)
+    reports_limit  = db.Column(db.Integer, default=FREE_REPORT_LIMIT, nullable=False)
+    is_paid        = db.Column(db.Boolean, default=False, nullable=False)
+    created_at     = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    reports = db.relationship('Report', backref='user', lazy='dynamic',
+                              cascade='all, delete-orphan')
+
+    @property
+    def reports_left(self):
+        return max(0, self.reports_limit - self.reports_used)
+
+    @property
+    def first_name(self):
+        return self.name.split()[0]
+
+    @property
+    def initials(self):
+        parts = self.name.split()
+        return (parts[0][0] + (parts[1][0] if len(parts) > 1 else '')).upper()
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f'<User {self.email}>'
+
 
 class Report(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(200), nullable=False)
-    english_explanation = db.Column(db.Text, nullable=False)
+    __tablename__ = 'reports'
+
+    id                   = db.Column(db.Integer, primary_key=True)
+    filename             = db.Column(db.String(255), nullable=False)
+    doc_type             = db.Column(db.String(20), default='general')
+    risk_level           = db.Column(db.String(10), default='NORMAL')
+    english_explanation  = db.Column(db.Text, nullable=False)
     gujarati_explanation = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at           = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    user_id              = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Report {self.filename}>'
+
+
+# ─────────────────────────────────────────────
+# AUTH
+# ─────────────────────────────────────────────
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ─── Helper Functions ──────────────────────────────────────────
+
+# ─────────────────────────────────────────────
+# HELPERS — FILE
+# ─────────────────────────────────────────────
+
+def allowed_file(filename):
+    return (
+        '.' in filename and
+        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
+
 
 def extract_text_from_pdf(filepath):
-    doc = fitz.open(filepath)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    doc.close()
-    return text.strip()
+    """Extract plain text from a PDF file. Returns empty string on failure."""
+    try:
+        doc  = fitz.open(filepath)
+        text = '\n'.join(page.get_text() for page in doc)
+        doc.close()
+        return text.strip()
+    except Exception as e:
+        log.error(f'PDF extraction failed: {e}')
+        return ''
+
+
+# ─────────────────────────────────────────────
+# HELPERS — AI
+# ─────────────────────────────────────────────
+
+_MEDICAL_KW  = {'hemoglobin','blood','glucose','mri','x-ray','diagnosis','patient',
+                'doctor','hospital','mg/dl','wbc','rbc','platelet','cholesterol',
+                'thyroid','urine','creatinine','bilirubin','prescription','ecg'}
+_BANK_KW     = {'account','balance','transaction','debit','credit','statement',
+                'bank','withdrawal','deposit','ifsc','savings','upi','neft','rtgs'}
+_LEGAL_KW    = {'agreement','contract','clause','party','hereby','whereas','terms',
+                'conditions','legal','court','plaintiff','defendant','notary','deed'}
+_ACADEMIC_KW = {'grade','marks','score','semester','cgpa','sgpa','result','university',
+                'college','subject','pass','fail','percentage','gpa','transcript'}
+
 
 def detect_document_type(text):
-    """Auto-detect what kind of document this is"""
-    text_lower = text.lower()
-    
-    medical_keywords = ['hemoglobin', 'blood', 'glucose', 'mri', 'x-ray', 'diagnosis', 
-                        'patient', 'doctor', 'hospital', 'mg/dl', 'wbc', 'rbc', 'platelet',
-                        'cholesterol', 'thyroid', 'urine', 'creatinine', 'bilirubin']
-    bank_keywords = ['account', 'balance', 'transaction', 'debit', 'credit', 'statement',
-                     'bank', 'withdrawal', 'deposit', 'ifsc', 'savings', 'current', 'upi']
-    legal_keywords = ['agreement', 'contract', 'clause', 'party', 'hereby', 'whereas',
-                      'terms', 'conditions', 'legal', 'court', 'plaintiff', 'defendant']
-    academic_keywords = ['grade', 'marks', 'score', 'semester', 'cgpa', 'sgpa', 'result',
-                         'university', 'college', 'subject', 'pass', 'fail', 'percentage']
-    
+    words = set(re.findall(r'\b\w+\b', text.lower()))
     scores = {
-        'medical': sum(1 for k in medical_keywords if k in text_lower),
-        'bank': sum(1 for k in bank_keywords if k in text_lower),
-        'legal': sum(1 for k in legal_keywords if k in text_lower),
-        'academic': sum(1 for k in academic_keywords if k in text_lower),
+        'medical':  len(words & _MEDICAL_KW),
+        'bank':     len(words & _BANK_KW),
+        'legal':    len(words & _LEGAL_KW),
+        'academic': len(words & _ACADEMIC_KW),
     }
-    
-    best = max(scores, key=scores.get)
-    return best if scores[best] > 0 else 'general'
+    best  = max(scores, key=scores.get)
+    return best if scores[best] >= 2 else 'general'
 
 
-def get_ai_explanation(text):
-    """Advanced AI analysis with structured output"""
-    
-    doc_type = detect_document_type(text)
-    
-    type_instructions = {
-        'medical': """This is a MEDICAL REPORT. Pay special attention to:
-- Lab values and whether they are normal/abnormal/critical
-- Any diagnoses or findings mentioned
-- Medications prescribed
-- Risk factors for the patient's health""",
+def _call_groq(prompt, max_tokens=2500):
+    """Single place to call Groq API."""
+    response = groq_client.chat.completions.create(
+        messages=[{'role': 'user', 'content': prompt}],
+        model='llama-3.3-70b-versatile',
+        max_tokens=max_tokens,
+        temperature=0.3,
+    )
+    return response.choices[0].message.content
 
-        'bank': """This is a BANK STATEMENT. Pay special attention to:
-- Account balance and trends
-- Large or unusual transactions
-- Recurring charges or subscriptions
-- Overall financial health indicators""",
 
-        'legal': """This is a LEGAL DOCUMENT. Pay special attention to:
-- Key obligations and rights of each party
-- Important dates and deadlines
-- Penalty or consequence clauses
-- Any unusual or concerning terms""",
+def _extract_section(text, start, ends):
+    if start not in text:
+        return ''
+    idx   = text.index(start) + len(start)
+    limit = len(text)
+    for end in ends:
+        pos = text.find(end, idx)
+        if pos != -1:
+            limit = min(limit, pos)
+    return text[idx:limit].strip()
 
-        'academic': """This is an ACADEMIC DOCUMENT. Pay special attention to:
-- Overall performance and grades
-- Subjects that need improvement
-- Achievements and strengths
-- Impact on academic standing""",
 
-        'general': """This is a general document. Extract the most important information."""
-    }
+def _extract_bullets(text, start, ends):
+    section = _extract_section(text, start, ends)
+    results = []
+    for line in section.splitlines():
+        line = line.strip().lstrip('•–-* ').strip()
+        if line and len(line) > 3:
+            results.append(line)
+    return results
 
-    prompt = f"""You are an expert AI analyst specializing in document analysis. 
-You explain complex documents to ordinary people in simple, clear language.
 
-DOCUMENT TYPE: {doc_type.upper()}
-{type_instructions[doc_type]}
+def _parse_confidence(text):
+    raw = _extract_section(text, 'CONFIDENCE_SCORE:', ['RISK_LEVEL:', 'KEY_FINDINGS:',
+                                                        'POSSIBLE_CAUSES:'])
+    digits = ''.join(filter(str.isdigit, raw.split('\n')[0]))
+    return min(int(digits[:3]), 100) if digits else 82
 
-DOCUMENT TEXT:
+
+def _parse_risk(text):
+    raw = _extract_section(text, 'RISK_LEVEL:',
+                            ['RISK_REASON:', 'KEY_FINDINGS:', 'POSSIBLE_CAUSES:']).upper()
+    if 'CRITICAL' in raw or 'HIGH' in raw:
+        return 'HIGH'
+    if 'ATTENTION' in raw or 'MEDIUM' in raw:
+        return 'MEDIUM'
+    return 'LOW'
+
+
+# ── Report Analysis ──────────────────────────
+
+_REPORT_TYPE_HINTS = {
+    'medical':  'Focus on lab values (normal/abnormal), diagnoses, medications, health risks.',
+    'bank':     'Focus on balance trends, unusual transactions, recurring charges, financial health.',
+    'legal':    'Focus on obligations, rights, deadlines, penalties, unusual clauses.',
+    'academic': 'Focus on overall performance, weak subjects, achievements, academic standing.',
+    'general':  'Extract the most important information for the reader.',
+}
+
+
+def get_report_analysis(text, doc_type):
+    prompt = f"""You are an expert document analyst. Explain this {doc_type} document
+to an ordinary person in simple, jargon-free language.
+
+FOCUS: {_REPORT_TYPE_HINTS[doc_type]}
+
+DOCUMENT (first {MAX_PDF_CHARS} chars):
 ---
-{text[:4000]}
+{text[:MAX_PDF_CHARS]}
 ---
 
-Provide a comprehensive analysis in the following EXACT format. 
-Do not deviate from this format:
+Reply in this EXACT format (no extra text before or after):
 
-DOCUMENT_TYPE: {doc_type}
+CONFIDENCE_SCORE: [0-100]
 
-CONFIDENCE_SCORE: [Give a percentage 0-100 of how confident you are in your analysis]
-
-RISK_LEVEL: [Choose exactly one: NORMAL or ATTENTION or CRITICAL]
-RISK_REASON: [One sentence explaining the risk level]
+RISK_LEVEL: [LOW or MEDIUM or HIGH]
+RISK_REASON: [one plain sentence]
 
 KEY_FINDINGS:
-- [Finding 1 - most important]
-- [Finding 2]
-- [Finding 3]
-- [Finding 4 if applicable]
-- [Finding 5 if applicable]
+• [finding 1]
+• [finding 2]
+• [finding 3]
+• [finding 4 if relevant]
+• [finding 5 if relevant]
 
 SIMPLE_EXPLANATION:
-[Write 3-4 sentences explaining the document in very simple English that anyone can understand. No jargon.]
+[3-4 plain sentences — what does this document mean for this person?]
 
 ACTION_ITEMS:
-- [Specific action 1 the person should take]
-- [Specific action 2]
-- [Specific action 3 if applicable]
+• [action 1]
+• [action 2]
+• [action 3 if needed]
 
 GUJARATI_EXPLANATION:
-[Write the same simple explanation in everyday Gujarati. Use simple words.]
+[Same explanation in simple everyday Gujarati]
 
 GUJARATI_KEY_FINDINGS:
-- [Finding 1 in Gujarati]
-- [Finding 2 in Gujarati]
-- [Finding 3 in Gujarati]
+• [finding 1 in Gujarati]
+• [finding 2 in Gujarati]
+• [finding 3 in Gujarati]
 
 GUJARATI_ACTION_ITEMS:
-- [Action 1 in Gujarati]
-- [Action 2 in Gujarati]
-- [Action 3 in Gujarati if applicable]"""
+• [action 1 in Gujarati]
+• [action 2 in Gujarati]"""
 
-    chat_completion = groq_client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        model="llama-3.3-70b-versatile",
-        max_tokens=2500,
-        temperature=0.3,
-    )
+    raw = _call_groq(prompt)
 
-    response = chat_completion.choices[0].message.content
-    return parse_ai_response(response, doc_type)
+    _ENDS_AFTER_CONF  = ['RISK_LEVEL:']
+    _ENDS_AFTER_RISK  = ['RISK_REASON:', 'KEY_FINDINGS:']
+    _ENDS_AFTER_RRSON = ['KEY_FINDINGS:', 'SIMPLE_EXPLANATION:']
+    _ENDS_AFTER_KF    = ['SIMPLE_EXPLANATION:', 'ACTION_ITEMS:']
+    _ENDS_AFTER_SE    = ['ACTION_ITEMS:', 'GUJARATI_EXPLANATION:']
+    _ENDS_AFTER_AI    = ['GUJARATI_EXPLANATION:', 'GUJARATI_KEY_FINDINGS:']
+    _ENDS_AFTER_GE    = ['GUJARATI_KEY_FINDINGS:', 'GUJARATI_ACTION_ITEMS:']
+    _ENDS_AFTER_GKF   = ['GUJARATI_ACTION_ITEMS:']
+    _ENDS_END         = ['---', 'END']
 
+    simple_exp = _extract_section(raw, 'SIMPLE_EXPLANATION:', _ENDS_AFTER_SE)
 
-def parse_ai_response(response, doc_type):
-    """Parse the structured AI response into a clean dictionary"""
-    
-    result = {
-        'doc_type': doc_type,
-        'confidence': '85',
-        'risk_level': 'NORMAL',
-        'risk_reason': 'No significant concerns found.',
-        'key_findings': [],
-        'simple_explanation': '',
-        'action_items': [],
-        'gujarati_explanation': '',
-        'gujarati_key_findings': [],
-        'gujarati_action_items': [],
+    return {
+        'doc_type':             doc_type,
+        'confidence':           _parse_confidence(raw),
+        'risk_level':           _parse_risk(raw),
+        'risk_reason':          _extract_section(raw, 'RISK_REASON:', _ENDS_AFTER_RRSON).split('\n')[0].strip(),
+        'key_findings':         _extract_bullets(raw, 'KEY_FINDINGS:', _ENDS_AFTER_KF),
+        'simple_explanation':   simple_exp or raw[:400],
+        'action_items':         _extract_bullets(raw, 'ACTION_ITEMS:', _ENDS_AFTER_AI),
+        'gujarati_explanation': _extract_section(raw, 'GUJARATI_EXPLANATION:', _ENDS_AFTER_GE)
+                                or 'સમજૂતી મેળવવામાં ભૂલ. ફરી પ્રયાસ કરો.',
+        'gujarati_key_findings':  _extract_bullets(raw, 'GUJARATI_KEY_FINDINGS:', _ENDS_AFTER_GKF),
+        'gujarati_action_items':  _extract_bullets(raw, 'GUJARATI_ACTION_ITEMS:', _ENDS_END),
     }
 
-    def extract_section(text, start_marker, end_markers):
-        """Extract content between markers"""
-        if start_marker not in text:
-            return ''
-        start = text.index(start_marker) + len(start_marker)
-        end = len(text)
-        for marker in end_markers:
-            if marker in text[start:]:
-                end = start + text[start:].index(marker)
-                break
-        return text[start:end].strip()
 
-    def extract_bullets(text, marker, end_markers):
-        """Extract bullet points from a section"""
-        section = extract_section(text, marker, end_markers)
-        bullets = []
-        for line in section.split('\n'):
-            line = line.strip()
-            if line.startswith('•') or line.startswith('-') or line.startswith('*'):
-                clean = line.lstrip('•-* ').strip()
-                if clean:
-                    bullets.append(clean)
-        return bullets
-
-    # Extract confidence
-    if 'CONFIDENCE_SCORE:' in response:
-        conf_line = extract_section(response, 'CONFIDENCE_SCORE:', ['RISK_LEVEL:', 'KEY_FINDINGS:'])
-        digits = ''.join(filter(str.isdigit, conf_line.split('\n')[0]))
-        if digits:
-            result['confidence'] = min(int(digits[:3]), 100)
-
-    # Extract risk level
-    if 'RISK_LEVEL:' in response:
-        risk_line = extract_section(response, 'RISK_LEVEL:', ['RISK_REASON:', 'KEY_FINDINGS:'])
-        risk_text = risk_line.split('\n')[0].upper()
-        if 'CRITICAL' in risk_text:
-            result['risk_level'] = 'CRITICAL'
-        elif 'ATTENTION' in risk_text:
-            result['risk_level'] = 'ATTENTION'
-        else:
-            result['risk_level'] = 'NORMAL'
-
-    # Extract risk reason
-    if 'RISK_REASON:' in response:
-        result['risk_reason'] = extract_section(
-            response, 'RISK_REASON:', ['KEY_FINDINGS:', 'SIMPLE_EXPLANATION:']
-        ).split('\n')[0].strip()
-
-    # Extract sections
-    result['key_findings'] = extract_bullets(
-        response, 'KEY_FINDINGS:', ['SIMPLE_EXPLANATION:', 'ACTION_ITEMS:'])
-    
-    result['simple_explanation'] = extract_section(
-        response, 'SIMPLE_EXPLANATION:', ['ACTION_ITEMS:', 'GUJARATI_EXPLANATION:'])
-    
-    result['action_items'] = extract_bullets(
-        response, 'ACTION_ITEMS:', ['GUJARATI_EXPLANATION:', 'GUJARATI_KEY_FINDINGS:'])
-    
-    result['gujarati_explanation'] = extract_section(
-        response, 'GUJARATI_EXPLANATION:', ['GUJARATI_KEY_FINDINGS:', 'GUJARATI_ACTION_ITEMS:'])
-    
-    result['gujarati_key_findings'] = extract_bullets(
-        response, 'GUJARATI_KEY_FINDINGS:', ['GUJARATI_ACTION_ITEMS:', 'END'])
-    
-    result['gujarati_action_items'] = extract_bullets(
-        response, 'GUJARATI_ACTION_ITEMS:', ['END', '---'])
-
-    # Fallback if parsing fails
-    if not result['simple_explanation']:
-        result['simple_explanation'] = response[:500]
-    if not result['gujarati_explanation']:
-        result['gujarati_explanation'] = 'સમજૂતી મેળવવામાં સમસ્યા આવી. કૃપા કરી ફરીથી પ્રયાસ કરો.'
-
-    return result
+# ── Symptom Analysis ─────────────────────────
 
 def analyze_symptoms(symptoms_text):
-    """Analyze user symptoms and return structured health guidance"""
-    
-    prompt = f"""You are ArogyaAI, a compassionate AI health assistant for Indian users.
-A user has described their symptoms. Provide helpful health guidance in simple language.
+    prompt = f"""You are ArogyaAI, a caring AI health assistant for Indian users.
+Analyze these symptoms and give clear, helpful guidance in plain language.
 
-IMPORTANT RULES:
-- Never diagnose. Always say "possible causes" not "you have"
-- Use very simple words that common people understand
-- Always recommend seeing a doctor for serious symptoms
-- Be caring and reassuring in tone
+RULES:
+- Never diagnose. Say "possible causes" not "you have".
+- Use simple words. Avoid medical jargon.
+- Be caring but honest.
+- Always recommend seeing a doctor for anything serious.
 
-USER SYMPTOMS:
-{symptoms_text}
+SYMPTOMS: {symptoms_text}
 
-Respond in this EXACT format:
+Reply in this EXACT format:
 
-CONFIDENCE_SCORE: [0-100 how well you understood the symptoms]
+CONFIDENCE_SCORE: [0-100]
 
-RISK_LEVEL: [Choose exactly one: LOW or MEDIUM or HIGH]
-RISK_REASON: [One simple sentence why]
+RISK_LEVEL: [LOW or MEDIUM or HIGH]
+RISK_REASON: [one plain sentence]
 
 POSSIBLE_CAUSES:
-- [Possible cause 1 in simple words]
-- [Possible cause 2]
-- [Possible cause 3 if applicable]
+• [cause 1]
+• [cause 2]
+• [cause 3 if relevant]
 
 WHAT_IT_MEANS:
-[2-3 sentences explaining what these symptoms might mean in very simple English. Be reassuring but honest.]
+[2-3 plain sentences — what could these symptoms mean?]
 
 ACTION_STEPS:
-- [Action 1 - most important thing to do]
-- [Action 2]
-- [Action 3]
+• [step 1 — most important]
+• [step 2]
+• [step 3]
 
 HOME_REMEDIES:
-- [Simple safe home remedy 1 if applicable]
-- [Simple safe home remedy 2 if applicable]
+• [safe remedy 1 if applicable]
+• [safe remedy 2 if applicable]
 
 WHEN_TO_SEE_DOCTOR:
-[One clear sentence about when they must see a doctor immediately]
+[one clear sentence about when to see a doctor immediately]
 
 GUJARATI_SUMMARY:
-[Write a simple 3-4 sentence summary in everyday Gujarati explaining the symptoms and what to do]
+[3-4 sentences in simple everyday Gujarati]
 
 GUJARATI_ACTION_STEPS:
-- [Action 1 in Gujarati]
-- [Action 2 in Gujarati]
-- [Action 3 in Gujarati]
+• [step 1 in Gujarati]
+• [step 2 in Gujarati]
+• [step 3 in Gujarati]"""
 
-DISCLAIMER: આ તબીબી નિદાન નથી. કૃપા કરી ડૉક્ટરની સલાહ લો. / This is not a medical diagnosis. Please consult a doctor."""
+    raw = _call_groq(prompt, max_tokens=2000)
 
-    chat_completion = groq_client.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-        model="llama-3.3-70b-versatile",
-        max_tokens=2000,
-        temperature=0.3,
-    )
-    
-    response = chat_completion.choices[0].message.content
-    return parse_symptoms_response(response)
+    what = _extract_section(raw, 'WHAT_IT_MEANS:', ['ACTION_STEPS:', 'HOME_REMEDIES:'])
+    gsum = _extract_section(raw, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:'])
+    wtsd = _extract_section(raw, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:']).split('\n')[0].strip()
 
-
-def parse_symptoms_response(response):
-    """Parse symptom analysis response"""
-    
-    result = {
-        'confidence': 80,
-        'risk_level': 'LOW',
-        'risk_reason': 'Symptoms appear mild.',
-        'possible_causes': [],
-        'what_it_means': '',
-        'action_steps': [],
-        'home_remedies': [],
-        'when_to_see_doctor': 'See a doctor if symptoms worsen or persist.',
-        'gujarati_summary': '',
-        'gujarati_action_steps': [],
+    return {
+        'confidence':           _parse_confidence(raw),
+        'risk_level':           _parse_risk(raw),
+        'risk_reason':          _extract_section(raw, 'RISK_REASON:', ['POSSIBLE_CAUSES:', 'WHAT_IT_MEANS:']).split('\n')[0].strip(),
+        'possible_causes':      _extract_bullets(raw, 'POSSIBLE_CAUSES:', ['WHAT_IT_MEANS:', 'ACTION_STEPS:']),
+        'what_it_means':        what or raw[:300],
+        'action_steps':         _extract_bullets(raw, 'ACTION_STEPS:', ['HOME_REMEDIES:', 'WHEN_TO_SEE_DOCTOR:']),
+        'home_remedies':        _extract_bullets(raw, 'HOME_REMEDIES:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:']),
+        'when_to_see_doctor':   wtsd or 'See a doctor if symptoms worsen or last more than 2-3 days.',
+        'gujarati_summary':     gsum or 'સમજૂતી ઉપલબ્ધ નથી.',
+        'gujarati_action_steps': _extract_bullets(raw, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
     }
 
-    def extract_section(text, start_marker, end_markers):
-        if start_marker not in text:
-            return ''
-        start = text.index(start_marker) + len(start_marker)
-        end = len(text)
-        for marker in end_markers:
-            if marker in text[start:]:
-                end = start + text[start:].index(marker)
-                break
-        return text[start:end].strip()
 
-    def extract_bullets(text, marker, end_markers):
-        section = extract_section(text, marker, end_markers)
-        bullets = []
-        for line in section.split('\n'):
-            line = line.strip()
-            if line.startswith(('•', '-', '*')):
-                clean = line.lstrip('•-* ').strip()
-                if clean:
-                    bullets.append(clean)
-        return bullets
+# ─────────────────────────────────────────────
+# CONTEXT PROCESSORS
+# ─────────────────────────────────────────────
 
-    # Confidence
-    if 'CONFIDENCE_SCORE:' in response:
-        conf = extract_section(response, 'CONFIDENCE_SCORE:', ['RISK_LEVEL:'])
-        digits = ''.join(filter(str.isdigit, conf.split('\n')[0]))
-        if digits:
-            result['confidence'] = min(int(digits[:3]), 100)
+@app.context_processor
+def inject_globals():
+    lang = request.cookies.get('lang', 'en')
+    if lang not in SUPPORTED_LANGUAGES:
+        lang = 'en'
+    return dict(
+        lang=lang,
+        t=TRANSLATIONS[lang],
+        app_version='1.0.0',
+    )
 
-    # Risk level
-    if 'RISK_LEVEL:' in response:
-        risk = extract_section(response, 'RISK_LEVEL:', ['RISK_REASON:', 'POSSIBLE_CAUSES:']).split('\n')[0].upper()
-        if 'HIGH' in risk:
-            result['risk_level'] = 'HIGH'
-        elif 'MEDIUM' in risk:
-            result['risk_level'] = 'MEDIUM'
-        else:
-            result['risk_level'] = 'LOW'
 
-    # Risk reason
-    if 'RISK_REASON:' in response:
-        result['risk_reason'] = extract_section(
-            response, 'RISK_REASON:', ['POSSIBLE_CAUSES:', 'WHAT_IT_MEANS:']).split('\n')[0].strip()
+app.jinja_env.globals.update(enumerate=enumerate)
 
-    result['possible_causes']       = extract_bullets(response, 'POSSIBLE_CAUSES:', ['WHAT_IT_MEANS:', 'ACTION_STEPS:'])
-    result['what_it_means']         = extract_section(response, 'WHAT_IT_MEANS:', ['ACTION_STEPS:', 'HOME_REMEDIES:'])
-    result['action_steps']          = extract_bullets(response, 'ACTION_STEPS:', ['HOME_REMEDIES:', 'WHEN_TO_SEE_DOCTOR:'])
-    result['home_remedies']         = extract_bullets(response, 'HOME_REMEDIES:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:'])
-    result['when_to_see_doctor']    = extract_section(response, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:', 'GUJARATI_ACTION_STEPS:']).split('\n')[0].strip()
-    result['gujarati_summary']      = extract_section(response, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:', 'DISCLAIMER:'])
-    result['gujarati_action_steps'] = extract_bullets(response, 'GUJARATI_ACTION_STEPS:', ['DISCLAIMER:', 'END'])
 
-    if not result['what_it_means']:
-        result['what_it_means'] = response[:300]
-
-    return result
-# ─── Routes ────────────────────────────────────────────────────
-APP_NAME = "ArogyaAI"
-
-FREE_REPORT_LIMIT = 2
-
-@app.route('/', methods=['GET', 'POST'])
-@login_required
-def index():
-    reports_left = FREE_REPORT_LIMIT - current_user.reports_used
-
-    if request.method == 'POST':
-
-        # Check free limit
-        if current_user.reports_used >= FREE_REPORT_LIMIT:
-            return render_template('index.html',
-                error="You have used your 2 free reports. Upgrade to continue.",
-                reports_left=0)
-
-        if 'pdf_file' not in request.files:
-            return render_template('index.html', error="Please select a PDF file.", reports_left=reports_left)
-
-        file = request.files['pdf_file']
-
-        if file.filename == '':
-            return render_template('index.html', error="No file selected.", reports_left=reports_left)
-
-        if not file.filename.endswith('.pdf'):
-            return render_template('index.html', error="Only PDF files are allowed.", reports_left=reports_left)
-
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filepath)
-
-        extracted_text = extract_text_from_pdf(filepath)
-
-        if not extracted_text:
-            return render_template('index.html',
-                error="Could not extract text. PDF may be image-based.",
-                reports_left=reports_left)
-
-        try:
-                analysis = get_ai_explanation(extracted_text)
-        except Exception as e:
-                return render_template('index.html', 
-                    error=f"AI error: {str(e)}", 
-                    reports_left=reports_left)
-
-        report = Report(
-                filename=file.filename,
-                english_explanation=analysis['simple_explanation'],
-                gujarati_explanation=analysis['gujarati_explanation'],
-                user_id=current_user.id
-            )
-        db.session.add(report)
-        current_user.reports_used += 1
-        db.session.commit()
-
-        return render_template('result.html',
-                analysis=analysis,
-                filename=file.filename)
-
-    return render_template('index.html', reports_left=reports_left)
-
+# ─────────────────────────────────────────────
+# ROUTES — AUTH
+# ─────────────────────────────────────────────
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
+    error = None
     if request.method == 'POST':
-        name = request.form.get('name').strip()
-        email = request.form.get('email').strip().lower()
-        password = request.form.get('password')
+        name     = request.form.get('name', '').strip()
+        email    = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
 
-        if not name or not email or not password:
-            return render_template('signup.html', error="All fields are required.")
+        if not all([name, email, password]):
+            error = 'All fields are required.'
+        elif len(name) < 2:
+            error = 'Name must be at least 2 characters.'
+        elif not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+            error = 'Please enter a valid email address.'
+        elif len(password) < 6:
+            error = 'Password must be at least 6 characters.'
+        elif User.query.filter_by(email=email).first():
+            error = 'This email is already registered. Please log in.'
+        else:
+            user = User(name=name, email=email)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            login_user(user, remember=True)
+            log.info(f'New user registered: {email}')
+            return redirect(url_for('index'))
 
-        if len(password) < 6:
-            return render_template('signup.html', error="Password must be at least 6 characters.")
-
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            return render_template('signup.html', error="Email already registered. Please log in.")
-
-        hashed_password = generate_password_hash(password)
-        new_user = User(name=name, email=email, password=hashed_password)
-        db.session.add(new_user)
-        db.session.commit()
-
-        login_user(new_user)
-        return redirect(url_for('index'))
-
-    return render_template('signup.html')
+    return render_template('signup.html', error=error)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -502,105 +488,147 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
 
+    error = None
     if request.method == 'POST':
-        email = request.form.get('email').strip().lower()
-        password = request.form.get('password')
+        email    = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        user     = User.query.filter_by(email=email).first()
 
-        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            error = 'Invalid email or password.'
+        else:
+            login_user(user, remember=True)
+            log.info(f'User logged in: {email}')
+            next_page = request.args.get('next')
+            return redirect(next_page if next_page else url_for('index'))
 
-        if not user or not check_password_hash(user.password, password):
-            return render_template('login.html', error="Invalid email or password.")
-
-        login_user(user)
-        return redirect(url_for('index'))
-
-    return render_template('login.html')
+    return render_template('login.html', error=error)
 
 
 @app.route('/logout')
 @login_required
 def logout():
+    log.info(f'User logged out: {current_user.email}')
     logout_user()
     return redirect(url_for('login'))
 
 
-@app.route('/history')
+# ─────────────────────────────────────────────
+# ROUTES — LANGUAGE
+# ─────────────────────────────────────────────
+
+@app.route('/set-language/<lang>')
+def set_language(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        lang = 'en'
+    referrer = request.referrer or url_for('index')
+    response = make_response(redirect(referrer))
+    response.set_cookie('lang', lang, max_age=60 * 60 * 24 * 365, samesite='Lax')
+    return response
+
+
+# ─────────────────────────────────────────────
+# ROUTES — REPORT UPLOAD
+# ─────────────────────────────────────────────
+
+@app.route('/', methods=['GET', 'POST'])
 @login_required
-def history():
-    reports = Report.query.filter_by(user_id=current_user.id)\
-        .order_by(Report.created_at.desc()).all()
-    return render_template('history.html', reports=reports)
+def index():
+    if request.method == 'POST':
+        # Usage limit check
+        if current_user.reports_used >= current_user.reports_limit:
+            return render_template('index.html',
+                error='You have used all your free reports. Please upgrade to continue.',
+                show_upgrade=True)
+
+        file = request.files.get('pdf_file')
+
+        # Validation
+        if not file or file.filename == '':
+            return render_template('index.html', error='Please select a PDF file.')
+        if not allowed_file(file.filename):
+            return render_template('index.html', error='Only PDF files are supported.')
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+        try:
+            file.save(filepath)
+            text = extract_text_from_pdf(filepath)
+        except Exception as e:
+            log.error(f'File save/extract error: {e}')
+            return render_template('index.html', error='Could not read your file. Please try again.')
+        finally:
+            # Always clean up temp file
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
+
+        if not text:
+            return render_template('index.html',
+                error='Could not extract text. Your PDF may be scanned/image-based.')
+
+        if len(text.strip()) < 50:
+            return render_template('index.html',
+                error='PDF has very little text. Please upload a text-based PDF.')
+
+        try:
+            doc_type = detect_document_type(text)
+            analysis = get_report_analysis(text, doc_type)
+        except Exception as e:
+            log.error(f'AI analysis error: {e}')
+            return render_template('index.html',
+                error='AI analysis failed. Please try again in a moment.')
+
+        # Persist to DB
+        report = Report(
+            filename             = filename,
+            doc_type             = analysis['doc_type'],
+            risk_level           = analysis['risk_level'],
+            english_explanation  = analysis['simple_explanation'],
+            gujarati_explanation = analysis['gujarati_explanation'],
+            user_id              = current_user.id,
+        )
+        db.session.add(report)
+        current_user.reports_used += 1
+        db.session.commit()
+        log.info(f'Report analyzed for user {current_user.email}: {filename}')
+
+        return render_template('result.html',
+            analysis=analysis,
+            filename=filename,
+            report_id=report.id)
+
+    return render_template('index.html')
 
 
-@app.route('/history/<int:report_id>')
-@login_required
-def view_report(report_id):
-    report = Report.query.get_or_404(report_id)
-    if report.user_id != current_user.id:
-        return redirect(url_for('history'))
-    return render_template('result.html',
-        english=report.english_explanation,
-        gujarati=report.gujarati_explanation,
-        filename=report.filename)
-
-
-# ─── Init DB & Run ─────────────────────────────────────────────
-app.jinja_env.globals.update(enumerate=enumerate)
-
-# Language strings for UI
-TRANSLATIONS = {
-    'en': {
-        'app_name': 'ArogyaAI',
-        'tagline': 'Your AI Health Assistant',
-        'nav_reports': 'Reports',
-        'nav_symptoms': 'Symptoms',
-        'nav_history': 'History',
-        'upload_title': 'Understand Any Report',
-        'upload_sub': 'Upload your medical report, bank statement or any PDF — explained in simple words instantly.',
-        'symptom_title': 'Describe Your Symptoms',
-        'symptom_sub': 'Type or speak your symptoms. Our AI will analyze and guide you.',
-        'disclaimer': 'This is not a medical diagnosis. Always consult a qualified doctor.',
-        'free_left': 'free reports remaining',
-    },
-    'gu': {
-        'app_name': 'આરોગ્યAI',
-        'tagline': 'તમારો AI સ્વાસ્થ્ય સહાયક',
-        'nav_reports': 'રિપોર્ટ',
-        'nav_symptoms': 'લક્ષણો',
-        'nav_history': 'ઇતિહાસ',
-        'upload_title': 'કોઈ પણ રિપોર્ટ સમજો',
-        'upload_sub': 'તમારો મેડિકલ રિપોર્ટ અપલોડ કરો — સરળ ભાષામાં તરત સમજૂતી મેળવો.',
-        'symptom_title': 'તમારા લક્ષણો જણાવો',
-        'symptom_sub': 'ટાઇપ કરો અથવા બોલો. અમારી AI તમને માર્ગદર્શન આપશે.',
-        'disclaimer': 'આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.',
-        'free_left': 'મફત રિપોર્ટ બાકી',
-    }
-}
-
-@app.context_processor
-def inject_globals():
-    lang = request.cookies.get('lang', 'en')
-    return dict(lang=lang, t=TRANSLATIONS.get(lang, TRANSLATIONS['en']))
+# ─────────────────────────────────────────────
+# ROUTES — SYMPTOM ANALYZER
+# ─────────────────────────────────────────────
 
 @app.route('/analyze-symptoms', methods=['GET', 'POST'])
 @login_required
 def analyze_symptoms_route():
     if request.method == 'POST':
         symptoms = request.form.get('symptoms', '').strip()
-        
+
         if not symptoms:
-            return render_template('symptoms.html', 
-                error="Please describe your symptoms.")
-        
-        if len(symptoms) < 10:
             return render_template('symptoms.html',
-                error="Please describe your symptoms in more detail.")
+                error='Please describe your symptoms.')
+        if len(symptoms) < MIN_SYMPTOM_LENGTH:
+            return render_template('symptoms.html',
+                error='Please describe your symptoms in more detail (at least a few words).')
+        if len(symptoms) > 2000:
+            symptoms = symptoms[:2000]
 
         try:
             analysis = analyze_symptoms(symptoms)
         except Exception as e:
+            log.error(f'Symptom analysis error: {e}')
             return render_template('symptoms.html',
-                error=f"AI error: {str(e)}")
+                error='AI analysis failed. Please try again.')
 
         return render_template('symptoms_result.html',
             analysis=analysis,
@@ -608,16 +636,90 @@ def analyze_symptoms_route():
 
     return render_template('symptoms.html')
 
-@app.route('/set-language/<lang>')
-def set_language(lang):
-    if lang not in ['en', 'gu']:
-        lang = 'en'
-    response = redirect(request.referrer or url_for('index'))
-    response.set_cookie('lang', lang, max_age=60*60*24*365)
-    return response
+
+# ─────────────────────────────────────────────
+# ROUTES — HISTORY
+# ─────────────────────────────────────────────
+
+@app.route('/history')
+@login_required
+def history():
+    page    = request.args.get('page', 1, type=int)
+    reports = (Report.query
+               .filter_by(user_id=current_user.id)
+               .order_by(Report.created_at.desc())
+               .paginate(page=page, per_page=20, error_out=False))
+    return render_template('history.html', reports=reports)
+
+
+@app.route('/history/<int:report_id>')
+@login_required
+def view_report(report_id):
+    report = Report.query.get_or_404(report_id)
+
+    # Security: only owner can view
+    if report.user_id != current_user.id:
+        log.warning(f'Unauthorized report access: user {current_user.id} → report {report_id}')
+        return redirect(url_for('history'))
+
+    # Reconstruct minimal analysis dict for result template
+    analysis = {
+        'doc_type':              report.doc_type,
+        'confidence':            90,
+        'risk_level':            report.risk_level,
+        'risk_reason':           'Previously analyzed report.',
+        'key_findings':          [],
+        'simple_explanation':    report.english_explanation,
+        'action_items':          [],
+        'gujarati_explanation':  report.gujarati_explanation,
+        'gujarati_key_findings': [],
+        'gujarati_action_items': [],
+    }
+    return render_template('result.html',
+        analysis=analysis,
+        filename=report.filename,
+        report_id=report.id)
+
+
+# ─────────────────────────────────────────────
+# ERROR HANDLERS
+# ─────────────────────────────────────────────
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('error.html', code=404,
+        message='Page not found.'), 404
+
+
+@app.errorhandler(413)
+def too_large(e):
+    return render_template('index.html',
+        error=f'File too large. Maximum size is {MAX_CONTENT_MB}MB.'), 413
+
+
+@app.errorhandler(500)
+def server_error(e):
+    log.error(f'500 error: {e}')
+    return render_template('error.html', code=500,
+        message='Something went wrong. Please try again.'), 500
+
+
+# ─────────────────────────────────────────────
+# HEALTH CHECK (for Render / uptime monitors)
+# ─────────────────────────────────────────────
+
+@app.route('/health')
+def health():
+    return jsonify(status='ok', version='1.0.0'), 200
+
+
+# ─────────────────────────────────────────────
+# STARTUP
+# ─────────────────────────────────────────────
 
 with app.app_context():
     db.create_all()
+    log.info('Database tables verified.')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true')

@@ -15,21 +15,21 @@
 <div id="canvas-container"></div>
 
 <div class="page">
-  <nav class="navbar">
-  <a href="/" class="nav-brand">{{ t.app_name }}</a>
-  <div class="nav-center">
-    <a href="/" class="nav-link">📄 {{ t.nav_reports }}</a>
-    <a href="/analyze-symptoms" class="nav-link">🩺 {{ t.nav_symptoms }}</a>
-    <a href="/history" class="nav-link">📋 {{ t.nav_history }}</a>
-  </div>
-  <div class="nav-right">
-    <div class="lang-toggle">
-      <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
-      <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
+  <nav class="navbar stagger-1">
+    <a href="/" class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#brandGrad)" stroke-width="2.5"><linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#c084fc"/></linearGradient><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      ReportAI
+    </a>
+    
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="nav-avatar">{{ current_user.name[0].upper() }}</div>
+        {{ current_user.name.split()[0] }}
+      </div>
+      <a href="/" class="btn btn-primary btn-sm">New Report</a>
+      <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
     </div>
-    <a href="/logout" class="btn btn-ghost btn-sm">{{ 'બહાર' if lang == 'gu' else 'Log out' }}</a>
-  </div>
-</nav>
+  </nav>
 
   <div class="container-md stagger-2">
     <div class="history-header">
