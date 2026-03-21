@@ -92,7 +92,7 @@ ENGLISH_EXPLANATION:
 GUJARATI_EXPLANATION:
 [your Gujarati explanation here]"""
 
-    chat_completion = client.chat.completions.create(
+    chat_completion = groq_client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama-3.3-70b-versatile",
         max_tokens=1500,
