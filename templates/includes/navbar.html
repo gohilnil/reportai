@@ -58,18 +58,25 @@
 .profile-dropdown.open .p-chevron { transform: rotate(180deg); }
 
 .p-dropdown-menu {
-  display: none; position: absolute; top: calc(100% + 14px); right: 0;
-  min-width: 240px; background: rgba(4,11,24,0.97); border: 1px solid var(--border-2);
-  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
-  backdrop-filter: var(--glass-blur-3); -webkit-backdrop-filter: var(--glass-blur-3);
-  z-index: 9000; overflow: hidden;
-  animation: dropFade 0.2s var(--spring) both; transform-origin: top right;
+  position: absolute; top: calc(100% + 10px); right: 0;
+  min-width: 250px; background: rgba(4,11,24,0.98); border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg); box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  z-index: 9999;
+  /* visibility approach — no display:none/block flash */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.97);
+  transform-origin: top right;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
 }
-@keyframes dropFade {
-  from { opacity:0; transform:translateY(-10px) scale(0.95); }
-  to   { opacity:1; transform:translateY(0) scale(1); }
+.profile-dropdown.open .p-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
 }
-.profile-dropdown.open .p-dropdown-menu { display: block; }
 .p-menu-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border-1); background: rgba(255,255,255,0.02); }
 .p-menu-name  { font-weight: 700; font-size: 0.95rem; color: var(--text-1); margin-bottom: 4px; }
 .p-menu-email { font-size: 0.8rem; color: var(--text-3); }
@@ -118,38 +125,28 @@
 .lang-toggle-btn.active { background: var(--surface-3); color: var(--text-1); box-shadow: 0 2px 6px rgba(0,0,0,0.3); border: 1px solid var(--border-1); }
 
 /* ════════════════════════════════════════
-   MOBILE NAVBAR — perfectly centered name
+   MOBILE NAVBAR — brand left, controls right
 ════════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* Navbar becomes a 3-column grid:
-     [profile+lang]  [ArogyaAI]  [empty mirror]
-     This keeps the name perfectly centered */
+  /* 2-column grid: [brand] [controls] */
   .navbar {
-    display: grid !important;
-    grid-template-columns: 1fr auto 1fr !important;
+    display: flex !important;
     align-items: center !important;
+    justify-content: space-between !important;
     padding: 0 16px !important;
   }
 
-  /* Left column — profile + lang */
-  .nav-right {
-    grid-column: 1;
-    justify-content: flex-start !important;
-    gap: 8px;
-  }
-
-  /* Center column — brand name only */
+  /* Brand stays left — show logo + text */
   .nav-brand {
-    grid-column: 2;
-    justify-content: center !important;
-    gap: 0 !important;
+    gap: 8px !important;
+    font-size: 1.05rem;
   }
 
-  /* Hide the logo icon on mobile */
-  .nav-logo { display: none !important; }
+  /* Keep logo visible on mobile */
+  .nav-logo { display: flex !important; }
 
-  /* Brand name — bold, gradient, centered */
+  /* Brand text */
   .nav-brand-text {
     display: block !important;
     font-size: 1.05rem;
@@ -157,38 +154,49 @@
     letter-spacing: -0.3px;
   }
 
-  /* Right column — empty spacer (mirrors left for centering) */
-  .nav-center {
-    display: none !important;
+  /* Hide desktop nav links */
+  .nav-center { display: none !important; }
+
+  /* Right controls — lang + profile, right-aligned */
+  .nav-right {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
   }
 
-  /* Right spacer div — push nothing, just balance grid */
-  .nav-right + * { grid-column: 3; }
+  /* Credits hidden on mobile (shown in dropdown instead) */
+  .nav-credits { display: none !important; }
 
-  /* Compact profile trigger */
+  /* Compact profile trigger — avatar only, no name */
   .profile-trigger .p-name { display: none; }
   .profile-trigger { padding: 3px !important; gap: 0 !important; }
-
-  /* Credits hidden on mobile */
-  .nav-credits { display: none !important; }
+  .profile-trigger .p-chevron { display: none; }
 
   /* Smaller lang toggle */
   .lang-toggle { padding: 3px; }
   .lang-toggle-btn { padding: 3px 7px; font-size: 0.68rem; }
 
-  /* Dropdown safe width */
+  /* Dropdown opens within viewport */
   .p-dropdown-menu {
     right: 0;
     min-width: 210px;
     max-width: calc(100vw - 16px);
   }
 }
+
+/* ── Ensure dropdown is never clipped ── */
+.nav-wrapper { overflow: visible !important; }
+.navbar      { overflow: visible !important; }
+.nav-right   { overflow: visible !important; position: relative; }
+.profile-dropdown { overflow: visible !important; }
+
 </style>
 
-<div class="nav-wrapper">
-  <nav class="navbar">
+<div class="nav-wrapper" style="overflow:visible;">
+  <nav class="navbar" style="overflow:visible;">
 
-    <!-- LEFT: lang + profile (mobile) / brand (desktop) -->
+    <!-- Brand (always left) -->
     <a href="/" class="nav-brand">
       <div class="nav-logo">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -198,7 +206,7 @@
       <span class="nav-brand-text">{{ t.app_name }}</span>
     </a>
 
-    <!-- CENTER: desktop nav links -->
+    <!-- CENTER: desktop nav links (hidden on mobile) -->
     <div class="nav-center">
       <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">{{ t.nav_reports }}</a>
       <a href="/analyze-symptoms" class="nav-link {% if active_page == 'symptoms' %}active{% endif %}">{{ t.nav_symptoms }}</a>
@@ -206,7 +214,7 @@
       <a href="/history" class="nav-link {% if active_page == 'history' %}active{% endif %}">{{ t.nav_history }}</a>
     </div>
 
-    <!-- RIGHT: lang toggle + credits + profile -->
+    <!-- RIGHT: lang + credits + profile (always right) -->
     <div class="nav-right">
       <div class="lang-toggle">
         <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
@@ -230,20 +238,20 @@
             <div class="p-menu-email">{{ current_user.email }}</div>
           </div>
           <div class="p-menu-credits">
-            <span class="p-menu-credits-label">{{ 'ઉपलब्ध' if lang == 'gu' else 'Credits' }}</span>
+            <span class="p-menu-credits-label">{{ 'ઉપલબ્ધ' if lang == 'gu' else 'Credits' }}</span>
             <span class="p-menu-credits-val {% if current_user.reports_left == 0 %}empty{% endif %}">
               {{ current_user.reports_left }} / {{ current_user.reports_limit }}
             </span>
           </div>
           <div class="p-menu-section">
             <a href="/account" class="p-menu-item {% if active_page == 'account' %}active-item{% endif %}">
-              <span class="mi">👤</span>{{ 'My Account' }}
+              <span class="mi">👤</span>My Account
             </a>
             <a href="/history" class="p-menu-item {% if active_page == 'history' %}active-item{% endif %}">
               <span class="mi">📋</span>{{ t.nav_history }}
             </a>
             <a href="/upgrade" class="p-menu-item {% if active_page == 'upgrade' %}active-item{% endif %}">
-              <span class="mi">⚡</span>{{ 'Buy Credits' }}
+              <span class="mi">⚡</span>Buy Credits
               {% if current_user.reports_left == 0 %}<span class="badge-new">!</span>{% endif %}
             </a>
           </div>
@@ -259,8 +267,8 @@
       </div>
 
       {% else %}
-      <a href="/login"  class="btn btn-ghost btn-sm">{{ 'Log in' }}</a>
-      <a href="/signup" class="btn btn-primary btn-sm">{{ 'Sign up' }}</a>
+      <a href="/login"  class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Sign up</a>
       {% endif %}
     </div>
 
@@ -271,10 +279,29 @@
 function toggleProfileDropdown(e) {
   e.stopPropagation();
   const d = document.getElementById('profileDropdown');
-  if (d) d.classList.toggle('open');
+  if (!d) return;
+  const isOpen = d.classList.contains('open');
+  /* Close all open dropdowns first */
+  document.querySelectorAll('.profile-dropdown.open').forEach(function(el) {
+    el.classList.remove('open');
+  });
+  /* Re-open only if it was closed */
+  if (!isOpen) d.classList.add('open');
 }
-document.addEventListener('click', function() {
+
+/* Close when clicking OUTSIDE the dropdown */
+document.addEventListener('click', function(e) {
   const d = document.getElementById('profileDropdown');
-  if (d) d.classList.remove('open');
+  if (!d) return;
+  if (d.contains(e.target)) return;
+  d.classList.remove('open');
+});
+
+/* Close on Escape key */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const d = document.getElementById('profileDropdown');
+    if (d) d.classList.remove('open');
+  }
 });
 </script>
