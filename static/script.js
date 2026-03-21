@@ -1,11 +1,11 @@
 /**
- * ArogyaAI — Main JavaScript
- * Handles: uploads, drag/drop, tabs, voice, animations, toasts
+ * ArogyaAI — Main JavaScript v3.0
+ * Fixes: double file picker, responsive nav, voice, tabs, toasts
  */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── Page entrance animation ─────────────────── */
+  /* ── Entrance animations ─────────────────────── */
   document.querySelectorAll('.animate-in').forEach((el, i) => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(14px)';
@@ -13,10 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
       el.style.transition = 'opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)';
       el.style.opacity = '1';
       el.style.transform = 'translateY(0)';
-    }, 60 + (i * 80));
+    }, 60 + i * 80);
   });
 
-  /* ── PDF Upload ───────────────────────────────── */
+  /* ─────────────────────────────────────────────────
+     PDF UPLOAD — FIX: prevent double file picker
+     The bug was: dropZone click → triggers label click
+     → label click → triggers input click = opens TWICE
+  ───────────────────────────────────────────────── */
   const dropZone   = document.getElementById('dropZone');
   const fileInput  = document.getElementById('pdf_file');
   const dropTitle  = document.getElementById('dropTitle');
@@ -25,20 +29,34 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitLbl  = document.getElementById('submitLabel');
 
   if (dropZone && fileInput) {
-    // Click to browse
-    dropZone.addEventListener('click', () => fileInput.click());
 
-    // Drag events
-    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+    // CRITICAL FIX: Remove the label's default click behaviour
+    // so only our controlled click fires — not label + input both
+    const dropLabel = dropZone.querySelector('label');
+    if (dropLabel) {
+      dropLabel.addEventListener('click', e => e.preventDefault());
+    }
+
+    // Single controlled click on the zone opens picker once
+    dropZone.addEventListener('click', e => {
+      // Don't trigger if clicking the clear/remove button
+      if (e.target.closest('.preview-clear')) return;
+      fileInput.click();
+    });
+
+    // Drag events — prevent browser default (open file)
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => {
       dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
       document.body.addEventListener(ev, e => e.preventDefault());
     });
-    ['dragenter','dragover'].forEach(ev =>
+    ['dragenter', 'dragover'].forEach(ev =>
       dropZone.addEventListener(ev, () => dropZone.classList.add('dragover'))
     );
-    ['dragleave','drop'].forEach(ev =>
+    ['dragleave', 'drop'].forEach(ev =>
       dropZone.addEventListener(ev, () => dropZone.classList.remove('dragover'))
     );
+
+    // Handle dropped file
     dropZone.addEventListener('drop', e => {
       const file = e.dataTransfer.files[0];
       if (!file) return;
@@ -46,14 +64,24 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Only PDF files are supported.', 'error');
         return;
       }
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      fileInput.files = dt.files;
-      updateDropUI(file.name);
+      setFileInput(file);
     });
+
+    // Handle picked file
     fileInput.addEventListener('change', function () {
       if (this.files[0]) updateDropUI(this.files[0].name);
     });
+
+    function setFileInput(file) {
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+      } catch (e) {
+        // DataTransfer not supported in some browsers — file already in input
+      }
+      updateDropUI(file.name);
+    }
 
     function updateDropUI(name) {
       if (dropTitle) {
@@ -70,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Submit loading state
   if (uploadForm) {
-    uploadForm.addEventListener('submit', function (e) {
-      if (!fileInput || !fileInput.files.length) {
+    uploadForm.addEventListener('submit', e => {
+      if (!fileInput || !fileInput.files || !fileInput.files.length) {
         e.preventDefault();
         showToast('Please select a PDF file first.', 'error');
         return;
@@ -84,12 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ── Result page tabs ─────────────────────────── */
-  const tabs   = document.querySelectorAll('.result-tab');
-  const panels = document.querySelectorAll('.result-panel');
-  tabs.forEach(tab => {
+  document.querySelectorAll('.result-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      panels.forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
       tab.classList.add('active');
       const panel = document.getElementById('panel-' + tab.dataset.tab);
       if (panel) panel.classList.add('active');
@@ -98,8 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* ── Voice input ──────────────────────────────── */
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let   recognition   = null;
-  let   isListening   = false;
+  let recognition   = null;
+  let isListening   = false;
 
   const micBtn        = document.getElementById('micBtn');
   const voiceStatus   = document.getElementById('voiceStatus');
@@ -131,18 +157,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function startListening() {
     recognition      = new SpeechRecognition();
     recognition.lang = voiceLang ? voiceLang.value : 'en-IN';
-    recognition.continuous      = true;
-    recognition.interimResults  = true;
+    recognition.continuous     = true;
+    recognition.interimResults = true;
     let finalTranscript = symptomsInput ? symptomsInput.value : '';
 
     recognition.onstart = () => {
       isListening = true;
-      if (micBtn)      { micBtn.classList.add('listening'); micBtn.textContent = '⏹'; }
-      if (symptomsInput) symptomsInput.classList.add('listening');
-      if (voiceStatus)   voiceStatus.classList.add('active');
-      if (voiceStatusTx) voiceStatusTx.textContent = 'Listening… speak now';
+      if (micBtn)       { micBtn.classList.add('listening'); micBtn.textContent = '⏹'; }
+      if (symptomsInput)  symptomsInput.classList.add('listening');
+      if (voiceStatus)    voiceStatus.classList.add('active');
+      if (voiceStatusTx)  voiceStatusTx.textContent = 'Listening… speak now';
     };
-
     recognition.onresult = e => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -154,23 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
         symptomsInput.value = finalTranscript + interim;
         if (charCount) charCount.textContent = symptomsInput.value.length;
       }
-      if (voiceStatusTx) {
-        voiceStatusTx.textContent = interim
-          ? `Hearing: "${interim.substring(0, 40)}…"`
-          : 'Listening…';
-      }
+      if (voiceStatusTx) voiceStatusTx.textContent = interim ? `Hearing: "${interim.substring(0,40)}…"` : 'Listening…';
     };
-
     recognition.onerror = e => {
-      const msgs = {
-        'not-allowed': '❌ Mic permission denied. Please allow access.',
-        'no-speech':   '🔇 No speech detected. Try again.',
-        'network':     '🌐 Network error.',
-      };
+      const msgs = { 'not-allowed': '❌ Mic denied.', 'no-speech': '🔇 No speech detected.', 'network': '🌐 Network error.' };
       if (voiceStatusTx) voiceStatusTx.textContent = msgs[e.error] || 'Error. Try again.';
       setTimeout(stopListening, 2000);
     };
-
     recognition.onend = () => { if (isListening) stopListening(); };
     recognition.start();
   }
@@ -179,12 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (recognition) { recognition.stop(); recognition = null; }
     isListening = false;
     if (micBtn)       { micBtn.classList.remove('listening'); micBtn.textContent = '🎤'; }
-    if (symptomsInput) {
-      symptomsInput.classList.remove('listening');
-      symptomsInput.value = symptomsInput.value.trim();
-      if (charCount) charCount.textContent = symptomsInput.value.length;
-    }
-    if (voiceStatus) voiceStatus.classList.remove('active');
+    if (symptomsInput) { symptomsInput.classList.remove('listening'); symptomsInput.value = symptomsInput.value.trim(); if (charCount) charCount.textContent = symptomsInput.value.length; }
+    if (voiceStatus)   voiceStatus.classList.remove('active');
   }
 
   /* ── Symptom form submit ──────────────────────── */
@@ -192,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const symptomBtn  = document.getElementById('symptomBtn');
   const symptomLbl  = document.getElementById('symptomBtnLabel');
   if (symptomForm) {
-    symptomForm.addEventListener('submit', function (e) {
+    symptomForm.addEventListener('submit', e => {
       const val = symptomsInput ? symptomsInput.value.trim() : '';
       if (val.length < 10) {
         e.preventDefault();
@@ -203,38 +214,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isListening) stopListening();
       if (symptomBtn) {
         symptomBtn.disabled = true;
-        if (symptomLbl) symptomLbl.textContent = '⏳ AI is analyzing…';
+        if (symptomLbl) symptomLbl.textContent = '⏳ Analyzing…';
       }
     });
   }
-
-  /* ── Active nav link highlight ────────────────── */
-  const currentPath = window.location.pathname;
-  document.querySelectorAll('.nav-link').forEach(link => {
-    const href = link.getAttribute('href');
-    if (href === currentPath ||
-       (href !== '/' && currentPath.startsWith(href))) {
-      link.classList.add('active');
-    } else if (href === '/' && currentPath === '/') {
-      link.classList.add('active');
-    }
-  });
 
   /* ── Navbar scroll effect ─────────────────────── */
   const navbar = document.querySelector('.navbar');
   if (navbar) {
     window.addEventListener('scroll', () => {
-      if (window.scrollY > 10) {
-        navbar.style.background = 'rgba(3,7,18,0.95)';
-        navbar.style.borderBottomColor = 'rgba(255,255,255,0.1)';
-      } else {
-        navbar.style.background = 'rgba(3,7,18,0.85)';
-        navbar.style.borderBottomColor = 'rgba(255,255,255,0.07)';
-      }
+      navbar.style.background = window.scrollY > 10 ? 'rgba(3,7,18,0.97)' : 'rgba(3,7,18,0.85)';
     }, { passive: true });
   }
 
-  /* ── Subtle mouse parallax on bg ──────────────── */
+  /* ── Subtle bg parallax ───────────────────────── */
   const bgScene = document.querySelector('.bg-scene');
   if (bgScene && window.innerWidth > 768) {
     let ticking = false;
@@ -250,12 +243,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ── Global toast ─────────────────────────────── */
+  /* ── Toast ────────────────────────────────────── */
   window.showToast = function(msg, type = 'info') {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
+    document.querySelector('.toast')?.remove();
     const toast = document.createElement('div');
     toast.className = 'toast';
+    const isError = type === 'error';
     toast.style.cssText = `
       position:fixed; bottom:24px; right:24px; z-index:9999;
       padding:11px 16px; border-radius:var(--radius-sm);
@@ -264,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
       animation:fadeUp 0.3s ease both;
       backdrop-filter:blur(12px); max-width:320px;
       font-family:var(--font-body);
-      ${type === 'error'
+      ${isError
         ? 'background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;'
         : 'background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;'}
     `;
