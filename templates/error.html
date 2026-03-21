@@ -3,27 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ code }} — ArogyaAI</title>
+  <title>{{ code }} — {{ t.app_name }}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
-  <nav class="navbar">
-    <a href="/" class="nav-brand">ArogyaAI</a>
-  </nav>
-  <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px 20px;">
-    <div style="text-align:center; max-width:420px;">
-      <div style="font-size:4rem; font-weight:800; font-family:var(--font-display); background:linear-gradient(135deg,#a5b4fc,#c4b5fd); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:16px;">{{ code }}</div>
-      <h2 style="font-size:1.2rem; margin-bottom:10px;">{{ message }}</h2>
-      <p style="color:var(--text2); font-size:0.9rem; margin-bottom:28px;">Don't worry — let's get you back on track.</p>
-      <a href="/" class="btn btn-primary">Go to Home</a>
+
+{% set active_page = '' %}
+{% include 'includes/navbar.html' %}
+
+<div style="flex:1; display:flex; align-items:center; justify-content:center; padding:60px 20px;">
+  <div style="text-align:center; max-width:440px;" class="animate-in">
+    <div style="font-size:5rem; font-weight:800; font-family:var(--font-display); background:linear-gradient(135deg,#a5b4fc,#c4b5fd); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:16px; line-height:1;">
+      {{ code }}
+    </div>
+    <h2 style="font-family:var(--font-display); font-size:1.3rem; font-weight:700; margin-bottom:10px;">
+      {% if code == 404 %}Page Not Found{% elif code == 500 %}Server Error{% else %}Error{% endif %}
+    </h2>
+    <p style="color:var(--text2); font-size:0.9rem; margin-bottom:28px; line-height:1.6;">{{ message }}</p>
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <a href="/" class="btn btn-primary">🏠 Go Home</a>
+      <a href="javascript:history.back()" class="btn btn-ghost">← Go Back</a>
     </div>
   </div>
-  <footer class="footer">
-    <span class="footer-brand">ArogyaAI</span>
-    <span>© 2026</span>
-  </footer>
+</div>
+
+{% include 'includes/footer.html' %}
 </div>
 </body>
 </html>
