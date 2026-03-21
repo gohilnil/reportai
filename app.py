@@ -1,10 +1,13 @@
 """
 ArogyaAI — AI-powered health assistant for Bharat
-Production-grade Flask application — v3.0
+Production-grade Flask application — v3.1
+Fixes: Groq timeout, max_tokens reduced, broken Gujarati fallbacks,
+       better error logging, retry logic on transient failures
 """
 
 import os
 import re
+import time
 import tempfile
 import logging
 import hmac as hmac_module
@@ -48,10 +51,14 @@ log = logging.getLogger('arogyaai')
 ALLOWED_EXTENSIONS       = {'pdf'}
 ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
 MAX_CONTENT_MB           = 10
-FREE_REPORT_LIMIT        = 999   # unlimited during launch
-MAX_PDF_CHARS            = 4000
+FREE_REPORT_LIMIT        = 999
+MAX_PDF_CHARS            = 3000   # FIX: reduced from 4000 → faster Groq response
+MAX_TOKENS_REPORT        = 1800   # FIX: reduced from 2500 → avoids Render timeout
+MAX_TOKENS_SYMPTOMS      = 1500   # FIX: reduced from 2000
+MAX_TOKENS_IMAGE         = 1500   # FIX: reduced from 2000
 MIN_SYMPTOM_LENGTH       = 10
 SUPPORTED_LANGUAGES      = ('en', 'gu')
+GROQ_TIMEOUT             = 25    # FIX: 25s timeout (Render kills at 30s)
 
 PLANS = {
     'starter': {'name': 'Starter', 'price': 49,  'reports': 10,  'popular': False},
@@ -85,13 +92,17 @@ login_manager = LoginManager(app)
 login_manager.login_view    = 'login'
 login_manager.login_message = ''
 
-groq_client     = Groq(api_key=os.getenv('GROQ_API_KEY'))
+# FIX: Groq client with timeout so it never hangs forever
+groq_client = Groq(
+    api_key=os.getenv('GROQ_API_KEY'),
+    timeout=GROQ_TIMEOUT,
+)
 razorpay_client = razorpay.Client(
     auth=(os.getenv('RAZORPAY_KEY_ID', ''), os.getenv('RAZORPAY_KEY_SECRET', ''))
 )
 
 # ─────────────────────────────────────────────
-# TRANSLATIONS
+# TRANSLATIONS — all proper Gujarati script
 # ─────────────────────────────────────────────
 
 TRANSLATIONS = {
@@ -124,7 +135,7 @@ TRANSLATIONS = {
         'symptom_title':  'તમારા લક્ષણો જણાવો',
         'symptom_sub':    'ટાઇપ કરો અથવા બોલો. AI તમને માર્ગદર્શન આપશે.',
         'free_left':      'રિપોર્ટ બાકી',
-        'logout':         'બહાર',
+        'logout':         'બહાર નીકળો',
         'disclaimer':     'આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.',
         'no_reports_yet': 'હજી કોઈ રિપોર્ટ નથી',
         'upload_first':   'શરૂ કરવા પ્રથમ PDF અપલોડ કરો',
@@ -137,7 +148,7 @@ TRANSLATIONS = {
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    id            = db.Column(db.Integer,    primary_key=True)
+    id            = db.Column(db.Integer,     primary_key=True)
     name          = db.Column(db.String(100), nullable=False)
     email         = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -209,7 +220,7 @@ class Payment(db.Model):
     user_id             = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 # ─────────────────────────────────────────────
-# GOOGLE OAUTH  ← BUG FIXED: provider field was set to google_user_id
+# GOOGLE OAUTH
 # ─────────────────────────────────────────────
 
 google_bp = make_google_blueprint(
@@ -254,7 +265,7 @@ def google_logged_in(blueprint, token):
         db.session.flush()
 
     oauth_record = OAuth(
-        provider         = 'google',           # ← FIXED (was google_user_id)
+        provider         = 'google',
         provider_user_id = google_user_id,
         token            = token,
         user_id          = user.id,
@@ -313,14 +324,24 @@ def detect_document_type(text):
     return best if scores[best] >= 2 else 'general'
 
 
-def _call_groq(prompt, max_tokens=2500):
-    response = groq_client.chat.completions.create(
-        messages=[{'role': 'user', 'content': prompt}],
-        model='llama-3.3-70b-versatile',
-        max_tokens=max_tokens,
-        temperature=0.3,
-    )
-    return response.choices[0].message.content
+# FIX: Added retry logic — retries once on transient Groq errors
+def _call_groq(prompt, max_tokens=1800, retries=1):
+    last_error = None
+    for attempt in range(retries + 1):
+        try:
+            response = groq_client.chat.completions.create(
+                messages=[{'role': 'user', 'content': prompt}],
+                model='llama-3.3-70b-versatile',
+                max_tokens=max_tokens,
+                temperature=0.3,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            last_error = e
+            log.error(f'Groq attempt {attempt+1} failed: {type(e).__name__}: {e}')
+            if attempt < retries:
+                time.sleep(1)  # wait 1s before retry
+    raise last_error
 
 
 def _extract_section(text, start, ends):
@@ -378,14 +399,11 @@ def _safe_remove(filepath):
 
 
 def extract_text_from_pdf(filepath):
-    """Extract text from PDF — tries 3 methods, returns best result."""
     try:
         doc        = fitz.open(filepath)
         pages_text = []
         for page in doc:
-            # Method 1: direct
             page_text = page.get_text('text')
-            # Method 2: dict blocks
             if len(page_text.strip()) < 20:
                 try:
                     blocks = page.get_text('dict')['blocks']
@@ -398,7 +416,6 @@ def extract_text_from_pdf(filepath):
                     page_text = ' '.join(spans)
                 except Exception:
                     pass
-            # Method 3: rawtext
             if len(page_text.strip()) < 20:
                 try:
                     page_text = page.get_text('rawtext')
@@ -436,7 +453,7 @@ DOCUMENT:
 {text[:MAX_PDF_CHARS]}
 ---
 
-Reply in this EXACT format:
+Reply in this EXACT format (no extra text):
 
 CONFIDENCE_SCORE: [0-100]
 
@@ -457,7 +474,7 @@ ACTION_ITEMS:
 • [action 3]
 
 GUJARATI_EXPLANATION:
-[Same 3-4 sentences in simple Gujarati]
+[Same 3-4 sentences in simple Gujarati script]
 
 GUJARATI_KEY_FINDINGS:
 • [finding 1 in Gujarati]
@@ -467,8 +484,10 @@ GUJARATI_ACTION_ITEMS:
 • [action 1 in Gujarati]
 • [action 2 in Gujarati]"""
 
-    raw        = _call_groq(prompt)
+    # FIX: use reduced MAX_TOKENS_REPORT
+    raw        = _call_groq(prompt, max_tokens=MAX_TOKENS_REPORT)
     simple_exp = _extract_section(raw, 'SIMPLE_EXPLANATION:', ['ACTION_ITEMS:', 'GUJARATI_EXPLANATION:'])
+    log.info(f'Groq response length: {len(raw)} chars')
     return {
         'doc_type':              doc_type,
         'confidence':            _parse_confidence(raw),
@@ -516,13 +535,14 @@ WHEN_TO_SEE_DOCTOR:
 [one clear sentence]
 
 GUJARATI_SUMMARY:
-[3-4 sentences in simple Gujarati]
+[3-4 sentences in simple Gujarati script]
 
 GUJARATI_ACTION_STEPS:
 • [step 1 in Gujarati]
 • [step 2 in Gujarati]"""
 
-    raw  = _call_groq(prompt, max_tokens=2000)
+    # FIX: use reduced MAX_TOKENS_SYMPTOMS
+    raw  = _call_groq(prompt, max_tokens=MAX_TOKENS_SYMPTOMS)
     what = _extract_section(raw, 'WHAT_IT_MEANS:', ['ACTION_STEPS:', 'HOME_REMEDIES:'])
     gsum = _extract_section(raw, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:'])
     wtsd = _extract_section(raw, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:']).split('\n')[0].strip()
@@ -535,7 +555,8 @@ GUJARATI_ACTION_STEPS:
         'action_steps':          _extract_bullets(raw, 'ACTION_STEPS:', ['HOME_REMEDIES:', 'WHEN_TO_SEE_DOCTOR:']),
         'home_remedies':         _extract_bullets(raw, 'HOME_REMEDIES:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:']),
         'when_to_see_doctor':    wtsd or 'See a doctor if symptoms worsen or last more than 2-3 days.',
-        'gujarati_summary':      gsum or 'સมجૂтी ઉплбдь нथी.',
+        # FIX: proper Gujarati fallback (was Cyrillic garbage)
+        'gujarati_summary':      gsum or 'સમજૂતી ઉપલબ્ધ નથી.',
         'gujarati_action_steps': _extract_bullets(raw, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
     }
 
@@ -580,11 +601,12 @@ ACTION_STEPS:
 WHEN_TO_SEE_DOCTOR:
 [one sentence]
 GUJARATI_SUMMARY:
-[3-4 sentences in Gujarati]
+[3-4 sentences in Gujarati script]
 GUJARATI_ACTION_STEPS:
 • [action 1 in Gujarati]
 • [action 2 in Gujarati]"""
 
+    # FIX: use reduced MAX_TOKENS_IMAGE
     response = groq_client.chat.completions.create(
         model='meta-llama/llama-4-scout-17b-16e-instruct',
         messages=[{
@@ -594,7 +616,7 @@ GUJARATI_ACTION_STEPS:
                 {'type': 'text', 'text': prompt}
             ]
         }],
-        max_tokens=2000,
+        max_tokens=MAX_TOKENS_IMAGE,
         temperature=0.3,
     )
     raw = response.choices[0].message.content
@@ -606,7 +628,8 @@ GUJARATI_ACTION_STEPS:
         'possible_issue':        _extract_section(raw, 'POSSIBLE_ISSUE:', ['ACTION_STEPS:', 'WHEN_TO_SEE_DOCTOR:']) or 'No specific concerns identified.',
         'action_steps':          _extract_bullets(raw, 'ACTION_STEPS:', ['WHEN_TO_SEE_DOCTOR:', 'GUJARATI_SUMMARY:']),
         'when_to_see_doctor':    _extract_section(raw, 'WHEN_TO_SEE_DOCTOR:', ['GUJARATI_SUMMARY:']).split('\n')[0].strip() or 'Consult a doctor if concerned.',
-        'gujarati_summary':      _extract_section(raw, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:']) or 'સमजૂтी ઉплбдь нथी.',
+        # FIX: proper Gujarati fallback (was Cyrillic garbage)
+        'gujarati_summary':      _extract_section(raw, 'GUJARATI_SUMMARY:', ['GUJARATI_ACTION_STEPS:']) or 'સમજૂતી ઉપલબ્ધ નથી.',
         'gujarati_action_steps': _extract_bullets(raw, 'GUJARATI_ACTION_STEPS:', ['---', 'END']),
     }
 
@@ -706,7 +729,7 @@ def set_language(lang):
     return response
 
 # ─────────────────────────────────────────────
-# ROUTES — REPORT UPLOAD  ← FULLY FIXED
+# ROUTES — REPORT UPLOAD
 # ─────────────────────────────────────────────
 
 @app.route('/', methods=['GET', 'POST'])
@@ -724,14 +747,12 @@ def index():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'aai_{filename}')
 
-    # Save
     try:
         file.save(filepath)
     except Exception as e:
         log.error(f'File save error: {e}')
         return render_template('index.html', error='Could not save file. Please try again.')
 
-    # Extract text — cleanup in finally so file is always removed
     text = ''
     try:
         text = extract_text_from_pdf(filepath)
@@ -746,15 +767,27 @@ def index():
             error='Could not read this PDF. It may be a scanned or image-only PDF. Try the Image Analyzer instead.',
             show_symptom_link=True)
 
-    # AI Analysis
+    # FIX: AI Analysis with detailed error logging
     try:
         doc_type = detect_document_type(text)
+        log.info(f'Doc type detected: {doc_type}')
         analysis = get_report_analysis(text, doc_type)
+        log.info(f'Analysis complete: risk={analysis["risk_level"]}, confidence={analysis["confidence"]}')
     except Exception as e:
-        log.error(f'AI error: {e}')
-        return render_template('index.html', error='AI analysis failed. Please try again in a moment.')
+        # FIX: log the FULL error with type so Render logs show exactly what failed
+        log.error(f'AI error [{type(e).__name__}]: {e}', exc_info=True)
+        # FIX: show helpful message based on error type
+        err_type = type(e).__name__
+        if 'Auth' in err_type or 'auth' in str(e).lower() or 'api_key' in str(e).lower():
+            error_msg = 'API key error. Please contact support.'
+        elif 'Timeout' in err_type or 'timeout' in str(e).lower():
+            error_msg = 'Analysis timed out. Please try with a shorter PDF or try again.'
+        elif 'Rate' in err_type or 'rate' in str(e).lower():
+            error_msg = 'Too many requests. Please wait a moment and try again.'
+        else:
+            error_msg = f'AI analysis failed ({err_type}). Please try again.'
+        return render_template('index.html', error=error_msg)
 
-    # Save to DB
     report = None
     try:
         report = Report(
@@ -794,7 +827,7 @@ def analyze_symptoms_route():
         try:
             analysis = analyze_symptoms(symptoms)
         except Exception as e:
-            log.error(f'Symptom error: {e}')
+            log.error(f'Symptom error [{type(e).__name__}]: {e}', exc_info=True)
             return render_template('symptoms.html', error='Analysis failed. Please try again.')
         return render_template('symptoms_result.html', analysis=analysis, symptoms=symptoms)
     return render_template('symptoms.html')
@@ -820,7 +853,7 @@ def analyze_image_route():
             image.save(filepath)
             analysis = analyze_image_with_ai(filepath, filename, category, context)
         except Exception as e:
-            log.error(f'Image error: {e}')
+            log.error(f'Image error [{type(e).__name__}]: {e}', exc_info=True)
             return render_template('analyze_image.html',
                 error='Analysis failed. Please try a clearer image.')
         finally:
@@ -1049,7 +1082,7 @@ def server_error(e):
 
 @app.route('/health')
 def health():
-    return jsonify(status='ok', version='3.0.0'), 200
+    return jsonify(status='ok', version='3.1.0'), 200
 
 # ─────────────────────────────────────────────
 # STARTUP
@@ -1057,7 +1090,10 @@ def health():
 
 with app.app_context():
     db.create_all()
-    log.info('ArogyaAI v3.0 started ✅')
+    log.info('ArogyaAI v3.1 started ✅')
+    # FIX: Log whether GROQ_API_KEY is set (without revealing the key)
+    groq_key = os.getenv('GROQ_API_KEY', '')
+    log.info(f'GROQ_API_KEY: {"SET ✅ (" + str(len(groq_key)) + " chars)" if groq_key else "NOT SET ❌ — AI will fail!"}')
 
 if __name__ == '__main__':
     app.run(debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true')

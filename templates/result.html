@@ -73,13 +73,9 @@
          <div>
           <div class="meta-label">{{ 'જોખમ મૂલ્યાંકન' if lang == 'gu' else 'Risk Assessment' }}</div>
           <div class="meta-value">
-            {% if analysis.risk_level == 'LOW' %}
-              {{ 'સામાન્ય — કોઈ ચિંતા નહીં' if lang == 'gu' else 'Normal — No Concerns' }}
-            {% elif analysis.risk_level == 'MEDIUM' %}
-              {{ 'ધ્યાન આપવું જરૂરી' if lang == 'gu' else 'Needs Attention' }}
-            {% else %}
-              {{ 'ઉચ્ચ જોખમ — તરત ડૉક્ટરને મળો' if lang == 'gu' else 'High Risk — See Doctor Now' }}
-            {% endif %}
+            {% if analysis.risk_level == 'LOW' %}{{ 'Normal — No Concerns' }}
+            {% elif analysis.risk_level == 'MEDIUM' %}{{ 'Needs Attention' }}
+            {% else %}{{ 'High Risk — See Doctor Now' }}{% endif %}
           </div>
           {% if analysis.risk_reason %}
           <div style="font-size:0.82rem; margin-top:3px; opacity:0.8;">{{ analysis.risk_reason }}</div>
