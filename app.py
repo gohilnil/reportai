@@ -49,7 +49,7 @@ ALLOWED_EXTENSIONS        = {'pdf'}
 ALLOWED_IMAGE_EXTENSIONS  = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
 MAX_CONTENT_MB            = 10
 MAX_IMAGE_MB              = 5
-FREE_REPORT_LIMIT         = 2
+FREE_REPORT_LIMIT         = 999
 MAX_PDF_CHARS             = 4000
 MIN_SYMPTOM_LENGTH        = 10
 SUPPORTED_LANGUAGES       = ('en', 'gu')
@@ -701,10 +701,10 @@ def set_language(lang):
 @login_required
 def index():
     if request.method == 'POST':
-        if current_user.reports_used >= current_user.reports_limit:
-            return render_template('index.html',
-                error='You have used all your reports. Please upgrade.',
-                show_upgrade=True)
+        # if current_user.reports_used >= current_user.reports_limit:
+        #     return render_template('index.html',
+        #         error='You have used all your reports. Please upgrade.',
+        #         show_upgrade=True)
 
         file = request.files.get('pdf_file')
         if not file or file.filename == '':
