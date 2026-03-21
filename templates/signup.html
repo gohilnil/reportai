@@ -56,6 +56,7 @@
             autofocus
           >
         </div>
+
         <div class="form-group">
           <label class="form-label">
             {{ 'ઇમેઇલ સરનામું' if lang == 'gu' else 'Email address' }}
@@ -69,6 +70,7 @@
             autocomplete="email"
           >
         </div>
+
         <div class="form-group">
           <label class="form-label">
             {{ 'પાસવર્ડ' if lang == 'gu' else 'Password' }}
@@ -84,21 +86,65 @@
         </div>
 
         <!-- Value props -->
-        <div style="display:flex; flex-direction:column; gap:7px; padding:14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.12); border-radius:10px;">
-          <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#6ee7b7;">
+        <div style="display:flex; flex-direction:column; gap:8px; padding:14px 16px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.12); border-radius:var(--radius);">
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:#6ee7b7;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             {{ '2 મફત રિપોર્ટ સ્પષ્ટીકરણ' if lang == 'gu' else '2 free report explanations' }}
           </div>
-          <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#6ee7b7;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:#6ee7b7;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             {{ 'English + ગુજરાતી આઉટપુટ' if lang == 'gu' else 'English + Gujarati output' }}
           </div>
-          <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#6ee7b7;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:#6ee7b7;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            {{ 'સંપૂર્ણ સુરક્ષિત — કોઈ ડેટા સ્ટોર નહીં' if lang == 'gu' else 'Completely private — no data stored' }}
+            {{ 'સ્વર + ઇમેજ + PDF વિશ્લેષણ' if lang == 'gu' else 'Voice + Image + PDF analysis' }}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:#6ee7b7;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ 'સંપૂર્ણ સુરક્ષિત — ડેટા સ્ટોર નહીં' if lang == 'gu' else 'Completely private — no data stored' }}
           </div>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg btn-full">
           {{ 'મફત એકાઉન્ટ બનાવો' if lang == 'gu' else 'Create free account' }}
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </form>
+
+      <div class="auth-divider">
+        {{ 'પહેલેથી એકાઉન્ટ છે?' if lang == 'gu' else 'Already have an account?' }}
+        <a href="/login">{{ 'લૉગ ઇન કરો' if lang == 'gu' else 'Log in' }}</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span class="footer-brand">{{ t.app_name }}</span>
+    <span>© 2026 · {{ t.disclaimer }}</span>
+  </footer>
+
+  <!-- Mobile bottom navigation -->
+  <nav class="mobile-nav">
+    <a href="/" class="mobile-nav-item">
+      <span class="icon">📄</span>
+      <span>{{ t.nav_reports }}</span>
+    </a>
+    <a href="/analyze-symptoms" class="mobile-nav-item">
+      <span class="icon">🩺</span>
+      <span>{{ t.nav_symptoms }}</span>
+    </a>
+    <a href="/analyze-image" class="mobile-nav-item">
+      <span class="icon">📸</span>
+      <span>{{ t.nav_image }}</span>
+    </a>
+    <a href="/history" class="mobile-nav-item">
+      <span class="icon">📋</span>
+      <span>{{ t.nav_history }}</span>
+    </a>
+  </nav>
+
+</div>
+<script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,269 +1,281 @@
-/* script.js */
+/**
+ * ArogyaAI — Main JavaScript
+ * Handles: uploads, drag/drop, tabs, voice, animations, toasts
+ */
 
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. Setup Three.js 3D Background Scene (only if canvas-container exists)
-  const container = document.getElementById('canvas-container');
-  if (container && typeof THREE !== 'undefined') {
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x020408, 0.0015);
+document.addEventListener('DOMContentLoaded', () => {
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 40;
+  /* ── Page entrance animation ─────────────────── */
+  document.querySelectorAll('.animate-in').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(14px)';
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1)';
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 60 + (i * 80));
+  });
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    container.appendChild(renderer.domElement);
-
-    // Floating 3D Geometric Shapes
-    const shapes = [];
-    const geometries = [
-      new THREE.IcosahedronGeometry(2, 0),
-      new THREE.TorusGeometry(1.5, 0.5, 16, 100),
-      new THREE.OctahedronGeometry(2, 0)
-    ];
-    // colors: indigo and violet
-    const colors = [0x6366f1, 0x8b5cf6];
-
-    for (let i = 0; i < 20; i++) {
-      const geo = geometries[Math.floor(Math.random() * geometries.length)];
-      const col = colors[Math.floor(Math.random() * colors.length)];
-      // Wireframe materials for high-tech premium feel
-      const mat = new THREE.MeshBasicMaterial({ 
-        color: col, 
-        wireframe: true, 
-        transparent: true, 
-        opacity: 0.15 + Math.random() * 0.15 
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      
-      mesh.position.x = (Math.random() - 0.5) * 100;
-      mesh.position.y = (Math.random() - 0.5) * 80;
-      mesh.position.z = (Math.random() - 0.5) * 60 - 20;
-      
-      mesh.rotation.x = Math.random() * Math.PI;
-      mesh.rotation.y = Math.random() * Math.PI;
-
-      // Random rotation speeds
-      mesh.userData = {
-        rx: (Math.random() - 0.5) * 0.01,
-        ry: (Math.random() - 0.5) * 0.01
-      };
-
-      scene.add(mesh);
-      shapes.push(mesh);
-    }
-
-    // Particles Field
-    const particlesGeo = new THREE.BufferGeometry();
-    const particleCount = 2000;
-    const posArray = new Float32Array(particleCount * 3);
-    for(let i=0; i < particleCount * 3; i++) {
-      posArray[i] = (Math.random() - 0.5) * 150;
-    }
-    particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-    const particlesMat = new THREE.PointsMaterial({
-      size: 0.15,
-      color: 0x6366f1,
-      transparent: true,
-      opacity: 0.4
-    });
-    const particlesMesh = new THREE.Points(particlesGeo, particlesMat);
-    scene.add(particlesMesh);
-
-    // Mouse Parallax
-    let mouseX = 0;
-    let mouseY = 0;
-    let targetX = 0;
-    let targetY = 0;
-    const windowHalfX = window.innerWidth / 2;
-    const windowHalfY = window.innerHeight / 2;
-
-    document.addEventListener('mousemove', (event) => {
-      mouseX = (event.clientX - windowHalfX);
-      mouseY = (event.clientY - windowHalfY);
-    });
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    const animate = function () {
-      requestAnimationFrame(animate);
-
-      targetX = mouseX * 0.001;
-      targetY = mouseY * 0.001;
-
-      shapes.forEach(mesh => {
-        mesh.rotation.x += mesh.userData.rx;
-        mesh.rotation.y += mesh.userData.ry;
-      });
-
-      particlesMesh.rotation.y += 0.0005;
-      
-      // extremely subtle camera rotation based on mouse
-      camera.position.x += (mouseX * 0.01 - camera.position.x) * 0.05;
-      camera.position.y += (-mouseY * 0.01 - camera.position.y) * 0.05;
-      camera.lookAt(scene.position);
-
-      renderer.render(scene, camera);
-    };
-    animate();
-  }
-
-  // 2. Drag & Drop Upload Handlers
-  const dropZone = document.getElementById('dropZone');
-  const fileInput = document.getElementById('pdf_file');
-  const dropTitle = document.getElementById('dropTitle');
+  /* ── PDF Upload ───────────────────────────────── */
+  const dropZone   = document.getElementById('dropZone');
+  const fileInput  = document.getElementById('pdf_file');
+  const dropTitle  = document.getElementById('dropTitle');
+  const uploadForm = document.getElementById('uploadForm');
+  const submitBtn  = document.getElementById('submitBtn');
+  const submitLbl  = document.getElementById('submitLabel');
 
   if (dropZone && fileInput) {
+    // Click to browse
     dropZone.addEventListener('click', () => fileInput.click());
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, preventDefaults, false);
-      document.body.addEventListener(eventName, preventDefaults, false);
+    // Drag events
+    ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+      dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); });
+      document.body.addEventListener(ev, e => e.preventDefault());
     });
-
-    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-    });
-
-    dropZone.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files.length) {
-        if (!files[0].name.toLowerCase().endsWith('.pdf')) {
-          showToast('Please upload a PDF file', 'error');
-          return;
-        }
-        fileInput.files = files;
-        updateFileName(files[0].name);
-      }
-    }
-
-    fileInput.addEventListener('change', function() {
-      if (this.files && this.files[0]) {
-        updateFileName(this.files[0].name);
-      }
-    });
-
-    function updateFileName(name) {
-      if (dropTitle) {
-        dropTitle.innerHTML = `<span style="color: var(--accent3);">${name}</span>`;
-      }
-    }
-  }
-
-  // 4. Form Submit Handler
-  const uploadForm = document.getElementById('uploadForm');
-  const submitBtn = document.getElementById('submitBtn');
-  const submitLabel = document.getElementById('submitLabel');
-
-  if (uploadForm && submitBtn) {
-    uploadForm.addEventListener('submit', (e) => {
-      if (!fileInput || !fileInput.files.length) {
-        e.preventDefault();
-        showToast('Please select a PDF file before explaining', 'error');
+    ['dragenter','dragover'].forEach(ev =>
+      dropZone.addEventListener(ev, () => dropZone.classList.add('dragover'))
+    );
+    ['dragleave','drop'].forEach(ev =>
+      dropZone.addEventListener(ev, () => dropZone.classList.remove('dragover'))
+    );
+    dropZone.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        showToast('Only PDF files are supported.', 'error');
         return;
       }
-      submitBtn.classList.add('loading');
-      if (submitLabel) submitLabel.textContent = 'Analyzing Report...';
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      updateDropUI(file.name);
+    });
+    fileInput.addEventListener('change', function () {
+      if (this.files[0]) updateDropUI(this.files[0].name);
+    });
+
+    function updateDropUI(name) {
+      if (dropTitle) {
+        dropTitle.innerHTML = `
+          <span style="color:#6ee7b7; display:flex; align-items:center; gap:6px; justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            ${name}
+          </span>`;
+      }
+    }
+  }
+
+  // Submit loading state
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', function (e) {
+      if (!fileInput || !fileInput.files.length) {
+        e.preventDefault();
+        showToast('Please select a PDF file first.', 'error');
+        return;
+      }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        if (submitLbl) submitLbl.textContent = 'AI is reading your report…';
+      }
     });
   }
 
-  // 5. Tab Switching (Result Page)
-  const tabs = document.querySelectorAll('.result-tab');
-  if (tabs.length > 0) {
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        // Remove active from all
-        document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
-        
-        // Add active to clicked
-        tab.classList.add('active');
-        const targetId = `panel-${tab.dataset.tab}`;
-        const targetPanel = document.getElementById(targetId);
-        if (targetPanel) {
-          targetPanel.classList.add('active');
-          // GSAP internal content subtle animation for 3D feel
-          if (typeof gsap !== 'undefined') {
-            gsap.fromTo(targetPanel.querySelector('.result-content'),
-              { y: 15, opacity: 0, scale: 0.98 },
-              { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: "power2.out" }
-            );
-          }
-        }
+  /* ── Result page tabs ─────────────────────────── */
+  const tabs   = document.querySelectorAll('.result-tab');
+  const panels = document.querySelectorAll('.result-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = document.getElementById('panel-' + tab.dataset.tab);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  /* ── Voice input ──────────────────────────────── */
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let   recognition   = null;
+  let   isListening   = false;
+
+  const micBtn        = document.getElementById('micBtn');
+  const voiceStatus   = document.getElementById('voiceStatus');
+  const voiceStatusTx = document.getElementById('voiceStatusText');
+  const symptomsInput = document.getElementById('symptomsInput');
+  const voiceLang     = document.getElementById('voiceLang');
+  const charCount     = document.getElementById('charCount');
+  const notSupported  = document.getElementById('voiceNotSupported');
+
+  if (micBtn) {
+    if (!SpeechRecognition) {
+      if (notSupported) notSupported.style.display = 'block';
+      micBtn.style.opacity = '0.4';
+      micBtn.style.cursor  = 'not-allowed';
+      micBtn.title = 'Voice not supported. Use Chrome or Edge.';
+    }
+    micBtn.addEventListener('click', () => {
+      if (!SpeechRecognition) return;
+      isListening ? stopListening() : startListening();
+    });
+  }
+
+  if (symptomsInput && charCount) {
+    symptomsInput.addEventListener('input', () => {
+      charCount.textContent = symptomsInput.value.length;
+    });
+  }
+
+  function startListening() {
+    recognition      = new SpeechRecognition();
+    recognition.lang = voiceLang ? voiceLang.value : 'en-IN';
+    recognition.continuous      = true;
+    recognition.interimResults  = true;
+    let finalTranscript = symptomsInput ? symptomsInput.value : '';
+
+    recognition.onstart = () => {
+      isListening = true;
+      if (micBtn)      { micBtn.classList.add('listening'); micBtn.textContent = '⏹'; }
+      if (symptomsInput) symptomsInput.classList.add('listening');
+      if (voiceStatus)   voiceStatus.classList.add('active');
+      if (voiceStatusTx) voiceStatusTx.textContent = 'Listening… speak now';
+    };
+
+    recognition.onresult = e => {
+      let interim = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalTranscript += t + ' ';
+        else interim = t;
+      }
+      if (symptomsInput) {
+        symptomsInput.value = finalTranscript + interim;
+        if (charCount) charCount.textContent = symptomsInput.value.length;
+      }
+      if (voiceStatusTx) {
+        voiceStatusTx.textContent = interim
+          ? `Hearing: "${interim.substring(0, 40)}…"`
+          : 'Listening…';
+      }
+    };
+
+    recognition.onerror = e => {
+      const msgs = {
+        'not-allowed': '❌ Mic permission denied. Please allow access.',
+        'no-speech':   '🔇 No speech detected. Try again.',
+        'network':     '🌐 Network error.',
+      };
+      if (voiceStatusTx) voiceStatusTx.textContent = msgs[e.error] || 'Error. Try again.';
+      setTimeout(stopListening, 2000);
+    };
+
+    recognition.onend = () => { if (isListening) stopListening(); };
+    recognition.start();
+  }
+
+  function stopListening() {
+    if (recognition) { recognition.stop(); recognition = null; }
+    isListening = false;
+    if (micBtn)       { micBtn.classList.remove('listening'); micBtn.textContent = '🎤'; }
+    if (symptomsInput) {
+      symptomsInput.classList.remove('listening');
+      symptomsInput.value = symptomsInput.value.trim();
+      if (charCount) charCount.textContent = symptomsInput.value.length;
+    }
+    if (voiceStatus) voiceStatus.classList.remove('active');
+  }
+
+  /* ── Symptom form submit ──────────────────────── */
+  const symptomForm = document.getElementById('symptomForm');
+  const symptomBtn  = document.getElementById('symptomBtn');
+  const symptomLbl  = document.getElementById('symptomBtnLabel');
+  if (symptomForm) {
+    symptomForm.addEventListener('submit', function (e) {
+      const val = symptomsInput ? symptomsInput.value.trim() : '';
+      if (val.length < 10) {
+        e.preventDefault();
+        showToast('Please describe your symptoms in more detail.', 'error');
+        if (symptomsInput) symptomsInput.focus();
+        return;
+      }
+      if (isListening) stopListening();
+      if (symptomBtn) {
+        symptomBtn.disabled = true;
+        if (symptomLbl) symptomLbl.textContent = '⏳ AI is analyzing…';
+      }
+    });
+  }
+
+  /* ── Active nav link highlight ────────────────── */
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-link').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href === currentPath ||
+       (href !== '/' && currentPath.startsWith(href))) {
+      link.classList.add('active');
+    } else if (href === '/' && currentPath === '/') {
+      link.classList.add('active');
+    }
+  });
+
+  /* ── Navbar scroll effect ─────────────────────── */
+  const navbar = document.querySelector('.navbar');
+  if (navbar) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        navbar.style.background = 'rgba(3,7,18,0.95)';
+        navbar.style.borderBottomColor = 'rgba(255,255,255,0.1)';
+      } else {
+        navbar.style.background = 'rgba(3,7,18,0.85)';
+        navbar.style.borderBottomColor = 'rgba(255,255,255,0.07)';
+      }
+    }, { passive: true });
+  }
+
+  /* ── Subtle mouse parallax on bg ──────────────── */
+  const bgScene = document.querySelector('.bg-scene');
+  if (bgScene && window.innerWidth > 768) {
+    let ticking = false;
+    document.addEventListener('mousemove', e => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const x = (e.clientX / window.innerWidth  - 0.5) * 20;
+        const y = (e.clientY / window.innerHeight - 0.5) * 14;
+        bgScene.style.transform = `translate(${x * 0.12}px, ${y * 0.08}px)`;
+        ticking = false;
       });
     });
   }
 
-  // 6. Toast Function
-  window.showToast = function(message, type = 'info') {
+  /* ── Global toast ─────────────────────────────── */
+  window.showToast = function(msg, type = 'info') {
     const existing = document.querySelector('.toast');
     if (existing) existing.remove();
-
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.style.cssText = `
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      padding: 16px 24px;
-      background: rgba(8, 12, 20, 0.9);
-      border: 1px solid ${type === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.3)'};
-      border-radius: 12px;
-      color: ${type === 'error' ? '#fca5a5' : '#fff'};
-      font-size: 0.95rem;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-      z-index: 9999;
-      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+      position:fixed; bottom:24px; right:24px; z-index:9999;
+      padding:11px 16px; border-radius:var(--radius-sm);
+      font-size:0.85rem; font-weight:500;
+      display:flex; align-items:center; gap:8px;
+      animation:fadeUp 0.3s ease both;
+      backdrop-filter:blur(12px); max-width:320px;
+      font-family:var(--font-body);
+      ${type === 'error'
+        ? 'background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;'
+        : 'background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#6ee7b7;'}
     `;
-    toast.textContent = message;
+    toast.textContent = msg;
     document.body.appendChild(toast);
-    
     setTimeout(() => {
-      if (toast.parentNode) toast.parentNode.removeChild(toast);
-    }, 3000);
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(8px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 3200);
   };
 
-  // Optional GSAP Page Internals (NOT on body/page wrappers to avoid invisible bug)
-  if (typeof gsap !== 'undefined') {
-    const featureCards = document.querySelectorAll('.feature-card');
-    if (featureCards.length > 0) {
-      gsap.fromTo(featureCards, 
-        { y: 40, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, stagger: 0.1, ease: 'power3.out', delay: 0.4 }
-      );
-    }
-  }
-
-  // Initialize Vanilla Tilt if present
-  if (typeof VanillaTilt !== 'undefined') {
-    VanillaTilt.init(document.querySelectorAll(".glass:not(.auth-card), .feature-card"), {
-      max: 5,
-      speed: 400,
-      glare: true,
-      "max-glare": 0.1
-    });
-    
-    // Auth card gets slightly heavier tilt
-    VanillaTilt.init(document.querySelectorAll(".auth-card"), {
-      max: 2,
-      speed: 1000,
-      glare: true,
-      "max-glare": 0.05
-    });
-  }
 });

@@ -353,7 +353,24 @@ Example: I have a headache since morning, mild fever, and feel very tired..."
       <a href="/logout" class="footer-link">Log out</a>
     </div>
   </footer>
-
+<nav class="mobile-nav">
+    <a href="/" class="mobile-nav-item {% if request.path == '/' %}active{% endif %}">
+      <span class="icon">📄</span>
+      <span>{{ t.nav_reports }}</span>
+    </a>
+    <a href="/analyze-symptoms" class="mobile-nav-item {% if '/analyze-symptoms' in request.path %}active{% endif %}">
+      <span class="icon">🩺</span>
+      <span>{{ t.nav_symptoms }}</span>
+    </a>
+    <a href="/analyze-image" class="mobile-nav-item {% if '/analyze-image' in request.path %}active{% endif %}">
+      <span class="icon">📸</span>
+      <span>{{ t.nav_image }}</span>
+    </a>
+    <a href="/history" class="mobile-nav-item {% if '/history' in request.path %}active{% endif %}">
+      <span class="icon">📋</span>
+      <span>{{ t.nav_history }}</span>
+    </a>
+  </nav>
 </div>
 
 <script>

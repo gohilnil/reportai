@@ -569,6 +569,7 @@ def inject_globals():
         lang=lang,
         t=TRANSLATIONS[lang],
         app_version='1.0.0',
+        request=request,
     )
 
 
