@@ -6,135 +6,65 @@
   <title>Admin Dashboard — {{ t.app_name }}</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
-    .admin-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin-bottom: 32px;
-    }
-    .admin-stat {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-    }
-    .admin-stat::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-    }
+    .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .admin-stat { background: var(--surface-1); border: 1px solid var(--border-1); border-radius: var(--radius-lg); padding: 24px; position: relative; overflow: hidden; }
+    .admin-stat::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
     .admin-stat:nth-child(1)::after { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
     .admin-stat:nth-child(2)::after { background: linear-gradient(90deg, #10b981, #06b6d4); }
     .admin-stat:nth-child(3)::after { background: linear-gradient(90deg, #f59e0b, #ef4444); }
     .admin-stat:nth-child(4)::after { background: linear-gradient(90deg, #06b6d4, #6366f1); }
-    .admin-stat-value {
-      font-family: var(--font-display);
-      font-size: 2.4rem;
-      font-weight: 800;
-      color: var(--text);
-      margin-bottom: 4px;
-      line-height: 1;
-    }
-    .admin-stat-label { font-size: 0.78rem; color: var(--text2); }
+    .admin-stat-value { font-family: var(--font-display); font-size: 2.8rem; font-weight: 800; color: var(--text-1); margin-bottom: 6px; line-height: 1; }
+    .admin-stat-label { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); }
 
-    .admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .admin-table th {
-      text-align: left;
-      padding: 10px 14px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text2);
-      border-bottom: 1px solid var(--border);
-    }
-    .admin-table td {
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      color: rgba(240,244,255,0.8);
-    }
-    .admin-table tr:hover td { background: var(--surface2); }
-    .admin-table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      margin-bottom: 24px;
-    }
-    .admin-table-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      font-family: var(--font-display);
-      font-size: 0.92rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .action-link {
-      font-size: 0.75rem;
-      color: #a5b4fc;
-      text-decoration: none;
-      padding: 3px 8px;
-      background: rgba(99,102,241,0.1);
-      border-radius: 4px;
-      transition: var(--transition);
-    }
-    .action-link:hover { background: rgba(99,102,241,0.2); }
+    .admin-table-wrap { background: var(--surface-2); border: 1px solid var(--border-2); border-radius: var(--radius-xl); overflow: hidden; margin-bottom: 32px; box-shadow: var(--shadow-lg); }
+    .admin-table-header { padding: 20px 24px; border-bottom: 1px solid var(--border-1); font-family: var(--font-display); font-size: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); }
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 500; }
+    .admin-table th { text-align: left; padding: 14px 24px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-2); border-bottom: 1px solid var(--border-1); background: rgba(0,0,0,0.2); }
+    .admin-table td { padding: 16px 24px; border-bottom: 1px solid var(--border-1); color: var(--text-1); transition: var(--transition); }
+    .admin-table tr:hover td { background: var(--surface-3); }
 
-    .admin-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.68rem;
-      font-weight: 700;
-    }
+    .action-link { font-size: 0.75rem; font-weight: 700; color: #a5b4fc; text-decoration: none; padding: 6px 12px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); border-radius: var(--radius-sm); transition: var(--transition); display: inline-block; }
+    .action-link:hover { background: rgba(99,102,241,0.2); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(99,102,241,0.2); }
+
+    .admin-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
   </style>
 </head>
 <body>
-<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+<div class="bg-scene"><div class="bg-orb bg-orb-1" style="animation-direction:reverse; opacity:0.1"></div><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
 
   {% set active_page = '' %}
-{% include 'includes/navbar.html' %}
+  {% include 'includes/navbar.html' %}
 
-  <div class="container" style="padding-top:36px; padding-bottom:64px;">
+  <main class="container" style="padding-top:40px; padding-bottom:80px; max-width: 1400px;">
 
     <!-- Header -->
-    <div style="margin-bottom:28px;" class="animate-in">
-      <div class="badge badge-warning" style="margin-bottom:10px;">⚙️ Admin Only</div>
-      <h1 style="font-family:var(--font-display); font-size:1.8rem; font-weight:800;">
-        Admin Dashboard
-      </h1>
-      <p style="color:var(--text2); font-size:0.88rem; margin-top:4px;">
-        Complete overview of ArogyaAI
-      </p>
+    <div style="margin-bottom:36px;" class="animate-in">
+      <div class="badge badge-warning" style="margin-bottom:12px;">⚙️ Admin Only Access</div>
+      <h1 class="page-heading">Admin Dashboard</h1>
     </div>
 
     <!-- Stats -->
     <div class="admin-stats animate-in delay-1">
-      <div class="admin-stat">
+      <div class="admin-stat card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="admin-stat-value">{{ total_users }}</div>
         <div class="admin-stat-label">👥 Total Users</div>
       </div>
-      <div class="admin-stat">
+      <div class="admin-stat card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="admin-stat-value">{{ paid_users }}</div>
         <div class="admin-stat-label">💳 Paid Users</div>
       </div>
-      <div class="admin-stat">
+      <div class="admin-stat card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="admin-stat-value">{{ total_reports }}</div>
         <div class="admin-stat-label">📄 Total Reports</div>
       </div>
-      <div class="admin-stat">
+      <div class="admin-stat card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="admin-stat-value">₹{{ total_revenue }}</div>
-        <div class="admin-stat-label">💰 Total Revenue</div>
+        <div class="admin-stat-label">💰 Revenue</div>
       </div>
     </div>
 
@@ -142,13 +72,13 @@
     <div class="admin-table-wrap animate-in delay-2">
       <div class="admin-table-header">
         <span>👥 Recent Users</span>
-        <span style="font-size:0.78rem; color:var(--text2);">Last 10 signups</span>
+        <span style="font-size:0.8rem; color:var(--text-3); font-weight:600;">Last 10 signups</span>
       </div>
       <div style="overflow-x:auto;">
         <table class="admin-table">
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Name & Avatar</th>
               <th>Email</th>
               <th>Reports Used</th>
               <th>Credits Left</th>
@@ -161,37 +91,37 @@
             {% for user in recent_users %}
             <tr>
               <td>
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <div style="width:28px; height:28px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; color:white; flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                  <div style="width:32px; height:32px; background:linear-gradient(135deg,var(--accent-1),var(--accent-2)); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:800; color:white; flex-shrink:0; box-shadow:0 2px 8px rgba(99,102,241,0.3);">
                     {{ user.initials }}
                   </div>
-                  {{ user.name }}
+                  <div style="font-weight:700;">{{ user.name }}</div>
                   {% if user.is_admin %}
-                  <span class="admin-badge" style="background:rgba(245,158,11,0.15); color:#fcd34d;">Admin</span>
+                  <span class="admin-badge" style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); color:#fcd34d;">Admin</span>
                   {% endif %}
                 </div>
               </td>
-              <td style="color:var(--text2);">{{ user.email }}</td>
-              <td>{{ user.reports_used }}</td>
+              <td style="color:var(--text-2);">{{ user.email }}</td>
+              <td style="font-weight:700;">{{ user.reports_used }}</td>
               <td>
-                <span style="color:{% if user.reports_left == 0 %}#fca5a5{% else %}#6ee7b7{% endif %}; font-weight:600;">
+                <span style="color:{% if user.reports_left == 0 %}#fca5a5{% else %}#6ee7b7{% endif %}; font-weight:800; text-shadow:0 0 10px {% if user.reports_left == 0 %}rgba(239,68,68,0.3){% else %}rgba(16,185,129,0.3){% endif %};">
                   {{ user.reports_left }}
                 </span>
               </td>
               <td>
                 {% if user.is_paid %}
-                <span class="admin-badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc;">Pro</span>
+                <span class="admin-badge" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); color:#a5b4fc;">Pro</span>
                 {% else %}
-                <span class="admin-badge" style="background:rgba(255,255,255,0.06); color:var(--text2);">Free</span>
+                <span class="admin-badge" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--text-2);">Free</span>
                 {% endif %}
               </td>
-              <td style="color:var(--text2);">{{ user.created_at.strftime('%d %b %Y') }}</td>
+              <td style="color:var(--text-3);">{{ user.created_at.strftime('%d %b %Y') }}</td>
               <td>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  <a href="/admin/add-credits/{{ user.id }}/10" class="action-link">+10 Credits</a>
-                  <a href="/admin/add-credits/{{ user.id }}/25" class="action-link">+25 Credits</a>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <a href="/admin/add-credits/{{ user.id }}/10" class="action-link">+10 Cr</a>
+                  <a href="/admin/add-credits/{{ user.id }}/25" class="action-link">+25 Cr</a>
                   {% if not user.is_admin %}
-                  <a href="/admin/make-admin/{{ user.id }}" class="action-link" style="color:#fcd34d; background:rgba(245,158,11,0.1);">Make Admin</a>
+                  <a href="/admin/make-admin/{{ user.id }}" class="action-link" style="color:#fcd34d; background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3);">Make Admin</a>
                   {% endif %}
                 </div>
               </td>
@@ -206,7 +136,7 @@
     <div class="admin-table-wrap animate-in delay-3">
       <div class="admin-table-header">
         <span>💳 Recent Payments</span>
-        <span style="font-size:0.78rem; color:var(--text2);">Last 10 transactions</span>
+        <span style="font-size:0.8rem; color:var(--text-3); font-weight:600;">Last transactions</span>
       </div>
       <div style="overflow-x:auto;">
         <table class="admin-table">
@@ -223,23 +153,23 @@
           <tbody>
             {% for payment in recent_payments %}
             <tr>
-              <td style="font-family:monospace; font-size:0.78rem; color:var(--text2);">
+              <td style="font-family:var(--font-display); font-size:0.85rem; color:var(--text-3); font-weight:600;">
                 {{ payment.razorpay_order_id[:20] }}...
               </td>
-              <td>{{ payment.user.name if payment.user else 'Unknown' }}</td>
+              <td style="font-weight:700;">{{ payment.user.name if payment.user else 'Unknown' }}</td>
               <td>
-                <span class="admin-badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc; text-transform:capitalize;">
+                <span class="admin-badge" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); color:#a5b4fc;">
                   {{ payment.plan_id }}
                 </span>
               </td>
-              <td style="color:#6ee7b7; font-weight:700;">₹{{ payment.amount // 100 }}</td>
+              <td style="color:#6ee7b7; font-weight:800; font-family:var(--font-display);">₹{{ payment.amount // 100 }}</td>
               <td>
                 <span class="admin-badge"
-                  style="{% if payment.status == 'paid' %}background:rgba(16,185,129,0.15); color:#6ee7b7;{% else %}background:rgba(239,68,68,0.15); color:#fca5a5;{% endif %}">
+                  style="{% if payment.status == 'paid' %}background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#6ee7b7;{% else %}background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#fca5a5;{% endif %}">
                   {{ payment.status | capitalize }}
                 </span>
               </td>
-              <td style="color:var(--text2);">{{ payment.created_at.strftime('%d %b %Y') }}</td>
+              <td style="color:var(--text-3);">{{ payment.created_at.strftime('%d %b %Y') }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -247,9 +177,9 @@
       </div>
     </div>
 
-  </div>
+  </main>
 
- {% include 'includes/footer.html' %}
+  {% include 'includes/footer.html' %}
 
 </div>
 <script src="/static/script.js"></script>

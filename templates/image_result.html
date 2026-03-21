@@ -5,103 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ 'ઇમેજ વિશ્લેષણ' if lang == 'gu' else 'Image Analysis' }} — {{ t.app_name }}</title>
   <link rel="stylesheet" href="/static/style.css">
-  <style>
-    .analysis-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
-    @media(max-width:640px) { .analysis-grid { grid-template-columns:1fr; } }
-
-    .meta-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px; display:flex; align-items:center; gap:13px; }
-    .meta-icon { width:40px; height:40px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
-    .meta-label { font-size:0.72rem; color:var(--text2); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; }
-    .meta-value { font-size:0.97rem; font-weight:700; color:var(--text); }
-
-    .risk-low    { background:rgba(16,185,129,0.06);  border-color:rgba(16,185,129,0.18); }
-    .risk-medium { background:rgba(245,158,11,0.06);  border-color:rgba(245,158,11,0.18); }
-    .risk-high   { background:rgba(239,68,68,0.06);   border-color:rgba(239,68,68,0.18); }
-    .risk-low  .meta-value  { color:#6ee7b7; }
-    .risk-medium .meta-value { color:#fcd34d; }
-    .risk-high .meta-value  { color:#fca5a5; }
-    .risk-low  .meta-icon   { background:rgba(16,185,129,0.12); }
-    .risk-medium .meta-icon { background:rgba(245,158,11,0.12); }
-    .risk-high .meta-icon   { background:rgba(239,68,68,0.12); }
-
-    .section-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; margin-bottom:14px; transition:var(--transition); }
-    .section-card:hover { border-color:var(--border2); }
-    .section-header { display:flex; align-items:center; gap:9px; margin-bottom:14px; padding-bottom:11px; border-bottom:1px solid var(--border); }
-    .section-icon { width:30px; height:30px; border-radius:var(--radius-sm); background:rgba(6,182,212,0.1); display:flex; align-items:center; justify-content:center; font-size:0.85rem; flex-shrink:0; }
-    .section-title { font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text2); }
-
-    .explanation-text { font-size:0.94rem; line-height:1.9; color:rgba(240,244,255,0.82); }
-    .gujarati-text { font-size:1.02rem; line-height:2.1; }
-
-    .action-list { list-style:none; display:flex; flex-direction:column; gap:9px; }
-    .action-item { display:flex; align-items:flex-start; gap:11px; padding:11px 13px; background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.12); border-radius:var(--radius-sm); font-size:0.88rem; line-height:1.6; color:rgba(240,244,255,0.82); }
-    .action-num { width:20px; height:20px; background:linear-gradient(135deg,#06b6d4,#6366f1); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:white; flex-shrink:0; }
-
-    .doctor-box { display:flex; gap:10px; align-items:flex-start; padding:13px 15px; background:rgba(239,68,68,0.07); border:1px solid rgba(239,68,68,0.18); border-radius:var(--radius-sm); font-size:0.87rem; color:#fca5a5; line-height:1.55; }
-    .disclaimer-box { display:flex; gap:10px; align-items:flex-start; padding:12px 15px; background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.16); border-radius:var(--radius-sm); font-size:0.8rem; color:#fcd34d; line-height:1.55; margin-top:18px; }
-
-    .conf-bar-wrap { width:100%; background:rgba(255,255,255,0.07); border-radius:999px; height:4px; margin-top:5px; }
-    .conf-bar { height:4px; border-radius:999px; background:linear-gradient(90deg,var(--cyan),var(--accent)); transition:width 1s ease; }
-
-    .lang-tabs { display:flex; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:3px; gap:3px; margin-bottom:18px; }
-    .lang-tab { flex:1; padding:9px 14px; border-radius:calc(var(--radius) - 3px); font-size:0.85rem; font-weight:600; color:var(--text2); background:none; border:none; cursor:pointer; transition:var(--transition); display:flex; align-items:center; justify-content:center; gap:6px; }
-    .lang-tab.active { background:linear-gradient(135deg,#06b6d4,#6366f1); color:white; box-shadow:0 2px 10px rgba(6,182,212,0.25); }
-    .lang-panel { display:none; }
-    .lang-panel.active { display:block; }
-
-    .category-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border-radius:999px; font-size:0.76rem; font-weight:600; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.22); color:#67e8f9; margin-top:10px; }
-  </style>
 </head>
 <body>
-<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+
+<div class="bg-scene">
+  <div class="bg-orb bg-orb-2" style="background:var(--accent-3);"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
 <div class="page">
-
   {% set active_page = 'image' %}
-{% include 'includes/navbar.html' %}
+  {% include 'includes/navbar.html' %}
 
-  <div class="container-md" style="padding-top:32px; padding-bottom:64px;">
+  <main class="container-md animate-in" style="padding-top: 40px; padding-bottom: 80px;">
 
-    <!-- Header -->
-    <div style="text-align:center; margin-bottom:28px;" class="animate-in">
-      <span class="badge badge-success" style="margin-bottom:14px; display:inline-flex;">
+    <!-- HEADER TITLE -->
+    <div style="text-align:center; margin-bottom: 32px;">
+      <span class="badge badge-success animate-in delay-1" style="margin-bottom:12px; display:inline-flex;">
         ✅ {{ 'વિશ્લેષણ પૂર્ણ' if lang == 'gu' else 'Analysis Complete' }}
       </span>
-      <h1 style="font-size:clamp(1.6rem,3vw,2.2rem); font-weight:800; margin-bottom:8px;">
+      <h1 class="hero-title animate-in delay-2" style="font-size: clamp(1.8rem, 5vw, 2.8rem); margin-bottom:12px;">
         {{ 'ઇમેજ વિશ્લેષણ પરિણામ' if lang == 'gu' else 'Image Analysis Result' }}
       </h1>
-      <div class="category-badge">
-        {% if category == 'skin' %}🧴 Skin
-        {% elif category == 'food' %}🥗 Food
-        {% elif category == 'medicine' %}💊 Medicine
-        {% elif category == 'report' %}📋 Report
-        {% elif category == 'xray' %}🩻 X-Ray
-        {% else %}🔍 General{% endif %}
-        {{ 'Analysis' if lang == 'en' else 'વિશ્લેષણ' }}
+      
+      <div class="animate-in delay-2" style="display:flex; justify-content:center; margin-bottom:16px;">
+        <span class="badge" style="background:rgba(6,182,212,0.15); border-color:rgba(6,182,212,0.3); color:#67e8f9; padding:6px 16px; font-size:0.85rem;">
+          {% if category == 'skin' %}🧴 Skin
+          {% elif category == 'food' %}🥗 Food
+          {% elif category == 'medicine' %}💊 Medicine
+          {% elif category == 'report' %}📋 Report
+          {% elif category == 'xray' %}🩻 X-Ray
+          {% else %}🔍 General{% endif %}
+          {{ 'Analysis' if lang == 'en' else 'વિશ્લેષણ' }}
+        </span>
       </div>
+
       {% if context %}
-      <div style="margin-top:10px; font-size:0.82rem; color:var(--text2); font-style:italic;">
+      <div class="animate-in delay-3" style="max-width:600px; margin: 0 auto; padding: 16px; background:rgba(255,255,255,0.03); border-left:3px solid var(--accent-3); font-style:italic; color:var(--text-2); font-size:0.95rem; text-align:left; border-radius:0 12px 12px 0;">
         "{{ context }}"
       </div>
       {% endif %}
     </div>
 
-    <!-- Meta cards -->
-    <div class="analysis-grid animate-in delay-1">
-
-      <!-- Confidence -->
-      <div class="meta-card" style="background:rgba(6,182,212,0.06); border-color:rgba(6,182,212,0.2);">
-        <div class="meta-icon" style="background:rgba(6,182,212,0.15);">🎯</div>
+    <!-- META CARDS -->
+    <div class="analysis-grid animate-in delay-3">
+      
+      <!-- Confidence Card -->
+      <div class="meta-card card-3d">
+        <div class="card-glow-overlay"></div>
+        <div class="meta-icon" style="color:var(--accent-3); background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2);">🎯</div>
         <div style="flex:1;">
           <div class="meta-label">{{ 'AI વિશ્વાસ' if lang == 'gu' else 'AI Confidence' }}</div>
-          <div class="meta-value" style="color:#67e8f9;">{{ analysis.confidence }}%</div>
+          <div class="meta-value" style="color:var(--accent-3);">{{ analysis.confidence }}%</div>
           <div class="conf-bar-wrap">
             <div class="conf-bar" style="width:{{ analysis.confidence }}%"></div>
           </div>
         </div>
       </div>
 
-      <!-- Risk -->
-      <div class="meta-card risk-{{ analysis.risk_level | lower }}">
+      <!-- Risk Level Card -->
+      <div class="meta-card card-3d risk-{{ analysis.risk_level | lower }}">
+        <div class="card-glow-overlay"></div>
         <div class="meta-icon">
           {% if analysis.risk_level == 'LOW' %}🟢
           {% elif analysis.risk_level == 'MEDIUM' %}🟡
@@ -111,138 +76,145 @@
           <div class="meta-label">{{ 'જોખમ સ્તર' if lang == 'gu' else 'Risk Level' }}</div>
           <div class="meta-value">
             {% if analysis.risk_level == 'LOW' %}{{ 'ઓછું જોખમ' if lang == 'gu' else 'Low Risk' }}
-            {% elif analysis.risk_level == 'MEDIUM' %}{{ 'મધ્યમ જોખમ' if lang == 'gu' else 'Medium Risk' }}
+            {% elif analysis.risk_level == 'MEDIUM' %}{{ 'મધ્યમ જોખમ' if lang == 'gu' else 'Moderate Risk' }}
             {% else %}{{ 'વધુ જોખમ' if lang == 'gu' else 'High Risk' }}{% endif %}
           </div>
-          <div style="font-size:0.75rem; margin-top:2px; opacity:0.75;">{{ analysis.risk_reason }}</div>
+          <div style="font-size:0.75rem; margin-top:4px; opacity:0.8;">{{ analysis.risk_reason }}</div>
         </div>
       </div>
 
     </div>
 
-    <!-- High risk urgent alert -->
+    <!-- ALERTS -->
     {% if analysis.risk_level == 'HIGH' %}
-    <div class="doctor-box animate-in" style="margin-bottom:18px;">
-      🚨 <span><strong>{{ 'તરત ડૉક્ટરને મળો!' if lang == 'gu' else 'See a doctor immediately!' }}</strong> {{ analysis.when_to_see_doctor }}</span>
+    <div class="doctor-box card-3d animate-in delay-4" style="--mouse-x:0;--mouse-y:0; margin-bottom: 24px;">
+      <div class="card-glow-overlay"></div>
+      <div style="font-size:1.4rem;">🚨</div>
+      <div>
+        <strong style="color:white;">{{ 'તરત ડૉક્ટરને મળો!' if lang == 'gu' else 'Immediate Action Required:' }}</strong> 
+        {{ analysis.when_to_see_doctor }}
+      </div>
     </div>
     {% endif %}
 
-    <!-- Language tabs -->
-    <div class="lang-tabs animate-in delay-2">
-      <button class="lang-tab active" onclick="switchLang('english', this)">🇬🇧 English</button>
-      <button class="lang-tab" onclick="switchLang('gujarati', this)">🇮🇳 ગુજરાતી</button>
+    <!-- LANGUAGE TABS -->
+    <div class="result-tabs animate-in delay-4">
+      <div class="tab-indicator"></div>
+      <button class="result-tab active" data-tab="english">🇬🇧 English</button>
+      <button class="result-tab" data-tab="gujarati">🇮🇳 ગુજરાતી</button>
     </div>
 
     <!-- ENGLISH PANEL -->
-    <div id="panel-english" class="lang-panel active">
-
+    <div id="panel-english" class="result-panel active">
+      
       <!-- What I see -->
-      <div class="section-card animate-in delay-2">
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">👁️</div>
-          <div class="section-title">{{ 'What I See' }}</div>
+          <div class="section-title">What I See</div>
         </div>
-        <p class="explanation-text">{{ analysis.what_i_see }}</p>
+        <div class="explanation-text">{{ analysis.what_i_see }}</div>
       </div>
 
-      <!-- Possible issue -->
-      <div class="section-card animate-in delay-2">
+      <!-- Possible Issue -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">🔍</div>
           <div class="section-title">Possible Issue</div>
         </div>
-        <p class="explanation-text">{{ analysis.possible_issue }}</p>
+        <div class="explanation-text">{{ analysis.possible_issue }}</div>
       </div>
 
-      <!-- Action steps -->
+      <!-- Action Steps -->
       {% if analysis.action_steps %}
-      <div class="section-card animate-in delay-3">
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">✅</div>
-          <div class="section-title">What To Do</div>
+          <div class="section-title">What To Do Next</div>
         </div>
         <ul class="action-list">
           {% for i, action in enumerate(analysis.action_steps) %}
-          <li class="action-item">
-            <div class="action-num">{{ i + 1 }}</div>
-            {{ action }}
-          </li>
+          <li class="action-item"><div class="action-num">{{ i + 1 }}</div><div>{{ action }}</div></li>
           {% endfor %}
         </ul>
       </div>
       {% endif %}
 
-      <!-- When to see doctor -->
-      <div class="doctor-box animate-in delay-3">
-        🏥 <span><strong>When to see a doctor:</strong> {{ analysis.when_to_see_doctor }}</span>
+      <!-- Doctor Advice -->
+      <div class="doctor-box card-3d" style="--mouse-x:0;--mouse-y:0; background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
+        <div class="card-glow-overlay"></div>
+        <div style="font-size:1.4rem;">👨‍⚕️</div>
+        <div><strong>When to see a doctor:</strong> {{ analysis.when_to_see_doctor }}</div>
       </div>
-
+    
     </div>
 
     <!-- GUJARATI PANEL -->
-    <div id="panel-gujarati" class="lang-panel">
-
-      <!-- Gujarati summary -->
-      <div class="section-card">
+    <div id="panel-gujarati" class="result-panel">
+      
+      <!-- Gujarati Summary -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">💬</div>
           <div class="section-title">સરળ સમજૂતી</div>
         </div>
-        <p class="explanation-text gujarati-text">{{ analysis.gujarati_summary }}</p>
+        <div class="explanation-text gujarati-text">{{ analysis.gujarati_summary }}</div>
       </div>
 
-      <!-- Gujarati actions -->
+      <!-- Gujarati Actions -->
       {% if analysis.gujarati_action_steps %}
-      <div class="section-card">
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
         <div class="section-header">
           <div class="section-icon">✅</div>
-          <div class="section-title">શું કરવું જોઈએ</div>
+          <div class="section-title">શું કરવું જોઈએ?</div>
         </div>
-        <ul class="action-list">
+        <ul class="action-list gujarati-text">
           {% for i, action in enumerate(analysis.gujarati_action_steps) %}
-          <li class="action-item">
-            <div class="action-num">{{ i + 1 }}</div>
-            {{ action }}
-          </li>
+          <li class="action-item"><div class="action-num">{{ i + 1 }}</div><div>{{ action }}</div></li>
           {% endfor %}
         </ul>
       </div>
       {% endif %}
-
-      <div class="doctor-box">
-        🏥 <span><strong>ડૉક્ટર ક્યારે મળવું:</strong> {{ analysis.when_to_see_doctor }}</span>
+      
+      <div class="doctor-box card-3d" style="--mouse-x:0;--mouse-y:0; background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
+        <div class="card-glow-overlay"></div>
+        <div style="font-size:1.4rem;">👨‍⚕️</div>
+        <div class="gujarati-text"><strong>ડૉક્ટર ને ક્યારે મળવું:</strong> {{ analysis.when_to_see_doctor }}</div>
       </div>
 
     </div>
 
-    <!-- Disclaimer -->
-    <div class="disclaimer-box animate-in">
-      ⚠️ <span><strong>{{ 'મહત્વની નોંધ' if lang == 'gu' else 'Important:' }}</strong>
-      {{ 'આ AI વિશ્લેષણ છે, તબીબી નિદાન નથી. કૃપા ડૉક્ટરની સલાહ લો.' if lang == 'gu' else 'This is an AI analysis, not a medical diagnosis. Always consult a qualified doctor for medical decisions.' }}</span>
+    <!-- GLOBAL DISCLAIMER -->
+    <div class="disclaimer-box card-3d animate-in delay-4" style="--mouse-x:0;--mouse-y:0; margin-top: 32px; margin-bottom: 32px;">
+      <div class="card-glow-overlay"></div>
+      <div style="font-size:1.4rem;">⚠️</div>
+      <div><strong>Important:</strong> 
+        This is an AI analysis, not a medical diagnosis. Always consult a qualified doctor for medical decisions.
+        <br><br><span style="font-size:0.95rem;" class="gujarati-text">આ તબીબી નિદાન નથી. કૃપા કરી ડૉક્ટરની સલાહ અવશ્ય લો.</span>
+      </div>
     </div>
 
-    <!-- Action buttons -->
-    <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;" class="animate-in">
-      <a href="/analyze-image" class="btn btn-primary"
-        style="background:linear-gradient(135deg,#06b6d4,#6366f1); box-shadow:0 0 20px rgba(6,182,212,0.3);">
+    <!-- BOTTOM ACTIONS -->
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;" class="animate-in delay-4">
+      <a href="/analyze-image" class="btn btn-primary btn-lg" style="background:linear-gradient(135deg,#06b6d4,#6366f1); box-shadow:0 0 20px rgba(6,182,212,0.3);">
         📸 {{ 'નવી ઇમેજ' if lang == 'gu' else 'Analyze New Image' }}
       </a>
-      <a href="/analyze-symptoms" class="btn btn-ghost">🩺 {{ t.nav_symptoms }}</a>
-      <a href="/" class="btn btn-ghost">📄 {{ t.nav_reports }}</a>
+      <a href="/analyze-symptoms" class="btn btn-ghost btn-lg">🩺 {{ t.nav_symptoms }}</a>
+      <a href="/" class="btn btn-ghost btn-lg">📄 {{ t.nav_reports }}</a>
     </div>
 
-  </div>
+  </main>
 
   {% include 'includes/footer.html' %}
 </div>
 
 <script>
-function switchLang(lang, el) {
-  document.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.lang-panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('panel-' + lang).classList.add('active');
-}
+  // Tab handling script is in script.js (Section 6)
 </script>
 <script src="/static/script.js"></script>
 </body>

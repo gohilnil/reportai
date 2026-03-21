@@ -3,160 +3,203 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ 'રિપોર્ટ વિશ્લેષણ' if lang == 'gu' else 'Report Analysis' }} — {{ t.app_name }}</title>
+  <title>Analysis Result — ArogyaAI</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+
+<div class="bg-scene">
+  <div class="bg-orb bg-orb-1" style="animation-direction:reverse; opacity:0.1"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
 <div class="page">
+  {% set active_page = 'result' %}
+  {% include 'includes/navbar.html' %}
 
-{% set active_page = 'home' %}
-{% include 'includes/navbar.html' %}
+  <main class="container-md animate-in" style="padding-top: 40px; padding-bottom: 80px;">
 
-<div class="container-md" style="padding-top:32px; padding-bottom:64px;">
-
-  <div style="text-align:center; margin-bottom:32px;" class="animate-in">
-    <span class="badge badge-success" style="margin-bottom:14px; display:inline-flex;">✅ {{ 'વિશ્લેષણ સંપૂર્ણ' if lang == 'gu' else 'Analysis Complete' }}</span>
-    <h1 style="font-size:clamp(1.6rem,3vw,2.2rem); font-weight:800; margin-bottom:10px; font-family:var(--font-display);">
-      {{ 'તમારો રિપોર્ટ સમજાવ્યો' if lang == 'gu' else 'Your Report Explained' }}
-    </h1>
-    <div style="display:inline-flex; align-items:center; gap:7px; padding:5px 14px; background:var(--surface); border:1px solid var(--border); border-radius:999px; font-size:0.82rem; color:var(--text2);">
-      📄 {{ filename }}
-    </div>
-  </div>
-
-  <!-- Meta cards -->
-  <div class="analysis-grid animate-in delay-1">
-    <div class="meta-card" style="background:rgba(99,102,241,0.06); border-color:rgba(99,102,241,0.18);">
-      <div class="meta-icon" style="background:rgba(99,102,241,0.12);">
-        {% if analysis.doc_type == 'medical' %}🏥{% elif analysis.doc_type == 'bank' %}🏦{% elif analysis.doc_type == 'legal' %}⚖️{% elif analysis.doc_type == 'academic' %}🎓{% else %}📄{% endif %}
-      </div>
-      <div>
-        <div class="meta-label">{{ 'ડૉક્યુમેન્ટ પ્રકાર' if lang == 'gu' else 'Document Type' }}</div>
-        <div class="meta-value">{{ analysis.doc_type | capitalize }}</div>
-      </div>
+    <!-- HEADER TITLE -->
+    <div style="text-align:center; margin-bottom: 32px;">
+      <span class="badge badge-success animate-in delay-1" style="margin-bottom:12px; display:inline-flex;">
+        ✅ Processing Complete
+      </span>
+      <h1 class="hero-title animate-in delay-2" style="font-size: clamp(1.8rem, 5vw, 2.8rem); margin-bottom:12px;">
+        Your Analysis Results
+      </h1>
+      <p class="hero-sub animate-in delay-3" style="font-size:0.95rem;">
+        File: <strong>{{ filename }}</strong>
+      </p>
     </div>
 
-    <div class="meta-card" style="background:rgba(6,182,212,0.06); border-color:rgba(6,182,212,0.18);">
-      <div class="meta-icon" style="background:rgba(6,182,212,0.12);">🎯</div>
-      <div style="flex:1;">
-        <div class="meta-label">{{ 'AI વિશ્વાસ' if lang == 'gu' else 'AI Confidence' }}</div>
-        <div class="meta-value" style="color:#67e8f9;">{{ analysis.confidence }}%</div>
-        <div class="conf-bar-wrap">
-          <div class="conf-bar" style="width:{{ analysis.confidence }}%"></div>
+    <!-- META CARDS -->
+    <div class="analysis-grid animate-in delay-3">
+      
+      <!-- Confidence Card -->
+      <div class="meta-card card-3d">
+        <div class="card-glow-overlay"></div>
+        <div class="meta-icon" style="color:var(--accent-3); background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2);">🎯</div>
+        <div style="flex:1;">
+          <div class="meta-label">AI Confidence</div>
+          <div class="meta-value" style="color:var(--accent-3);">{{ analysis.confidence }}%</div>
+          <div class="conf-bar-wrap">
+            <div class="conf-bar" style="width:{{ analysis.confidence }}%"></div>
+          </div>
         </div>
       </div>
+
+      <!-- Risk Level Card -->
+      <div class="meta-card card-3d risk-{{ analysis.risk_level | lower }}">
+        <div class="card-glow-overlay"></div>
+        <div class="meta-icon">
+          {% if analysis.risk_level == 'LOW' %}🟢
+          {% elif analysis.risk_level == 'MEDIUM' %}🟡
+          {% else %}🔴{% endif %}
+        </div>
+        <div>
+          <div class="meta-label">Risk Level</div>
+          <div class="meta-value">
+            {% if analysis.risk_level == 'LOW' %}Low Risk
+            {% elif analysis.risk_level == 'MEDIUM' %}Moderate Risk
+            {% else %}High Risk — See Doctor{% endif %}
+          </div>
+          <div style="font-size:0.75rem; margin-top:4px; opacity:0.8;">{{ analysis.risk_reason }}</div>
+        </div>
+      </div>
+
     </div>
 
-    <div class="meta-card risk-{{ analysis.risk_level | lower }}" style="grid-column:1/-1;">
-      <div class="meta-icon">
-        {% if analysis.risk_level == 'LOW' %}✅{% elif analysis.risk_level == 'MEDIUM' %}⚠️{% else %}🚨{% endif %}
-      </div>
+    <!-- ALERTS -->
+    {% if analysis.risk_level == 'HIGH' %}
+    <div class="doctor-box card-3d animate-in delay-4" style="--mouse-x:0;--mouse-y:0;">
+      <div class="card-glow-overlay"></div>
+      <div style="font-size:1.4rem;">🚨</div>
       <div>
-        <div class="meta-label">{{ 'જોખમ આકારણી' if lang == 'gu' else 'Risk Assessment' }}</div>
-        <div class="meta-value">
-          {% if analysis.risk_level == 'LOW' %}{{ 'સામાન્ય — કોઈ ચિંતા નથી' if lang == 'gu' else 'Normal — No Concerns' }}
-          {% elif analysis.risk_level == 'MEDIUM' %}{{ 'ધ્યાન જરૂરી' if lang == 'gu' else 'Needs Attention' }}
-          {% else %}{{ 'ઉચ્ચ જોખમ — તરત ડૉક્ટરને મળો' if lang == 'gu' else 'High Risk — See Doctor Now' }}{% endif %}
+        <strong style="color:white;">Immediate Action Required:</strong> 
+        {{ analysis.when_to_see_doctor }}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- LANGUAGE TABS -->
+    <div class="result-tabs animate-in delay-4">
+      <div class="tab-indicator"></div>
+      <button class="result-tab active" data-tab="english">🇬🇧 English</button>
+      <button class="result-tab" data-tab="gujarati">🇮🇳 ગુજરાતી</button>
+    </div>
+
+    <!-- ENGLISH PANEL -->
+    <div id="panel-english" class="result-panel active">
+      
+      <!-- Summary -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
+        <div class="section-header">
+          <div class="section-icon">💬</div>
+          <div class="section-title">What This Means For You</div>
         </div>
-        {% if analysis.risk_reason %}
-        <div style="font-size:0.82rem; margin-top:3px; opacity:0.8;">{{ analysis.risk_reason }}</div>
+        <div class="explanation-text">{{ analysis.summary }}</div>
+      </div>
+
+      <!-- Key Findings -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
+        <div class="section-header">
+          <div class="section-icon">🔍</div>
+          <div class="section-title">Key Findings (Abnormal Values)</div>
+        </div>
+        {% if analysis.key_findings %}
+        <ul class="findings-list">
+          {% for finding in analysis.key_findings %}
+          <li class="finding-item"><div class="finding-dot"></div><div>{{ finding }}</div></li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color:var(--text-3); font-style:italic;">No significant abnormalities discovered.</p>
         {% endif %}
       </div>
-    </div>
-  </div>
 
-  <!-- Language tabs -->
-  <div class="result-tabs animate-in delay-2">
-    <button class="result-tab active" data-tab="english">🇬🇧 English</button>
-    <button class="result-tab" data-tab="gujarati">🇮🇳 ગુજરાતી</button>
-  </div>
+      <!-- Action Steps -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
+        <div class="section-header">
+          <div class="section-icon">✅</div>
+          <div class="section-title">Recommended Next Steps</div>
+        </div>
+        <ul class="action-list">
+          {% for i, action in enumerate(analysis.action_steps) %}
+          <li class="action-item"><div class="action-num">{{ i + 1 }}</div><div>{{ action }}</div></li>
+          {% endfor %}
+        </ul>
+      </div>
 
-  <!-- English panel -->
-  <div id="panel-english" class="result-panel active animate-in delay-2">
-    {% if analysis.key_findings %}
-    <div class="section-card">
-      <div class="section-header"><div class="section-icon">🔍</div><div class="section-title">{{ 'Key Findings' }}</div></div>
-      <ul class="findings-list">
-        {% for f in analysis.key_findings %}
-        <li class="finding-item"><div class="finding-dot"></div>{{ f }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    <div class="section-card">
-      <div class="section-header"><div class="section-icon">💬</div><div class="section-title">{{ 'Simple Explanation' }}</div></div>
-      <p class="explanation-text">{{ analysis.simple_explanation }}</p>
+      <!-- Doctor Advice -->
+      <div class="doctor-box card-3d" style="--mouse-x:0;--mouse-y:0; background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
+        <div class="card-glow-overlay"></div>
+        <div style="font-size:1.4rem;">👨‍⚕️</div>
+        <div><strong>When to see a doctor:</strong> {{ analysis.when_to_see_doctor }}</div>
+      </div>
+    
     </div>
 
-    {% if analysis.action_items %}
-    <div class="section-card">
-      <div class="section-header"><div class="section-icon">✅</div><div class="section-title">{{ 'What You Should Do' }}</div></div>
-      <ul class="action-list">
-        {% for i, action in enumerate(analysis.action_items) %}
-        <li class="action-item"><div class="action-num">{{ i+1 }}</div>{{ action }}</li>
-        {% endfor %}
-      </ul>
+    <!-- GUJARATI PANEL -->
+    <div id="panel-gujarati" class="result-panel">
+      
+      <!-- Gujarati Summary -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
+        <div class="section-header">
+          <div class="section-icon">💬</div>
+          <div class="section-title">આ રિપોર્ટ શું કહે છે?</div>
+        </div>
+        <div class="explanation-text gujarati-text">{{ analysis.gujarati_summary }}</div>
+      </div>
+
+      <!-- Gujarati Actions -->
+      <div class="section-card card-3d" style="--mouse-x:0;--mouse-y:0;">
+        <div class="card-glow-overlay"></div>
+        <div class="section-header">
+          <div class="section-icon">✅</div>
+          <div class="section-title">તમારે શું કરવું જોઈએ?</div>
+        </div>
+        <ul class="action-list gujarati-text">
+          {% for i, action in enumerate(analysis.gujarati_action_steps) %}
+          <li class="action-item"><div class="action-num">{{ i + 1 }}</div><div>{{ action }}</div></li>
+          {% endfor %}
+        </ul>
+      </div>
+      
+      <div class="doctor-box card-3d" style="--mouse-x:0;--mouse-y:0; background:rgba(99,102,241,0.08); border-color:rgba(99,102,241,0.2); color:#a5b4fc;">
+        <div class="card-glow-overlay"></div>
+        <div style="font-size:1.4rem;">👨‍⚕️</div>
+        <div class="gujarati-text"><strong>ડૉક્ટર ને ક્યારે મળવું:</strong> જો તબિયત બગડે તો તરત ડૉક્ટરની સલાહ લો.</div>
+      </div>
+
     </div>
-    {% endif %}
-  </div>
 
-  <!-- Gujarati panel -->
-  <div id="panel-gujarati" class="result-panel">
-    {% if analysis.gujarati_key_findings %}
-    <div class="section-card">
-      <div class="section-header"><div class="section-icon">🔍</div><div class="section-title">{{ 'મુખ્ય તારણો' }}</div></div>
-      <ul class="findings-list">
-        {% for f in analysis.gujarati_key_findings %}
-        <li class="finding-item"><div class="finding-dot"></div>{{ f }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    <div class="section-card">
-      <div class="section-header"><div class="section-icon">💬</div><div class="section-title">{{ 'સરળ સમજૂતી' }}</div></div>
-      <p class="explanation-text gujarati-text">{{ analysis.gujarati_explanation }}</p>
+    <!-- GLOBAL DISCLAIMER -->
+    <div class="disclaimer-box card-3d animate-in delay-4" style="--mouse-x:0;--mouse-y:0; margin-bottom: 32px;">
+      <div class="card-glow-overlay"></div>
+      <div style="font-size:1.4rem;">⚠️</div>
+      <div><strong>Important Disclaimer:</strong> 
+        ArogyaAI is an AI assistant and does not replace professional medical diagnosis. 
+        Always consult a qualified doctor before taking any medical decisions.
+        <br><br><span style="font-size:0.95rem;" class="gujarati-text">આ તબીબી નિદાન નથી. કૃપા કરી ડૉક્ટરની સલાહ અવશ્ય લો.</span>
+      </div>
     </div>
 
-    {% if analysis.gujarati_action_items %}
-    <div class="section-card">
-      <div class="section-header"><div class="section-icon">✅</div><div class="section-title">{{ 'તમારે શું કરવું' }}</div></div>
-      <ul class="action-list">
-        {% for i, action in enumerate(analysis.gujarati_action_items) %}
-        <li class="action-item"><div class="action-num">{{ i+1 }}</div>{{ action }}</li>
-        {% endfor %}
-      </ul>
+    <!-- BOTTOM ACTIONS -->
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center;" class="animate-in delay-4">
+      <a href="/" class="btn btn-primary btn-lg">Analyze Another Report</a>
+      <a href="/history" class="btn btn-ghost btn-lg">View History</a>
     </div>
-    {% endif %}
-  </div>
 
-  <div class="disclaimer-box animate-in">
-    ⚕️ <span>{{ t.disclaimer }}</span>
-  </div>
+  </main>
 
-  <div style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;" class="animate-in">
-    <a href="/" class="btn btn-primary">⚡ {{ 'બીજો રિपोर्ट' if lang == 'gu' else 'Explain Another Report' }}</a>
-    <a href="/history" class="btn btn-ghost">📋 {{ t.nav_history }}</a>
-  </div>
-
+  {% include 'includes/footer.html' %}
 </div>
 
-{% include 'includes/footer.html' %}
-</div>
-
-<script>
-document.querySelectorAll('.result-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    const panel = document.getElementById('panel-' + tab.dataset.tab);
-    if (panel) panel.classList.add('active');
-  });
-});
-</script>
 <script src="/static/script.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ code }} — {{ t.app_name }}</title>
+  <title>{{ code }} Error — {{ t.app_name }}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -13,23 +13,25 @@
 {% set active_page = '' %}
 {% include 'includes/navbar.html' %}
 
-<div style="flex:1; display:flex; align-items:center; justify-content:center; padding:60px 20px;">
-  <div style="text-align:center; max-width:440px;" class="animate-in">
-    <div style="font-size:5rem; font-weight:800; font-family:var(--font-display); background:linear-gradient(135deg,#a5b4fc,#c4b5fd); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:16px; line-height:1;">
+<main style="flex:1; display:flex; align-items:center; justify-content:center; padding:80px 20px;">
+  <div class="card-3d animate-in" style="--mouse-x:0;--mouse-y:0; text-align:center; max-width:500px; padding:48px 32px; background:var(--surface-1); border:1px solid var(--border-1); border-radius:var(--radius-xl);">
+    <div class="card-glow-overlay"></div>
+    <div style="font-size:6rem; font-weight:800; font-family:var(--font-display); background:linear-gradient(135deg,var(--accent-1),var(--accent-3)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:16px; line-height:1; filter:drop-shadow(0 10px 20px rgba(99,102,241,0.3));">
       {{ code }}
     </div>
-    <h2 style="font-family:var(--font-display); font-size:1.3rem; font-weight:700; margin-bottom:10px;">
-      {% if code == 404 %}Page Not Found{% elif code == 500 %}Server Error{% else %}Error{% endif %}
+    <h2 style="font-family:var(--font-display); font-size:1.6rem; font-weight:800; margin-bottom:12px; color:var(--text-1);">
+      {% if code == 404 %}Page Not Found{% elif code == 500 %}Server Error{% else %}Something Went Wrong{% endif %}
     </h2>
-    <p style="color:var(--text2); font-size:0.9rem; margin-bottom:28px; line-height:1.6;">{{ message }}</p>
-    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-      <a href="/" class="btn btn-primary">🏠 Go Home</a>
-      <a href="javascript:history.back()" class="btn btn-ghost">← Go Back</a>
+    <p style="color:var(--text-2); font-size:1rem; font-weight:500; margin-bottom:32px; line-height:1.6;">{{ message }}</p>
+    <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+      <a href="/" class="btn btn-primary btn-lg" style="box-shadow:0 0 20px rgba(99,102,241,0.3);">🏠 Go Home</a>
+      <a href="javascript:history.back()" class="btn btn-ghost btn-lg">← Go Back</a>
     </div>
   </div>
-</div>
+</main>
 
 {% include 'includes/footer.html' %}
 </div>
+<script src="/static/script.js"></script>
 </body>
 </html>

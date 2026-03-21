@@ -3,98 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ t.app_name }} — {{ t.tagline }}</title>
+  <title>ArogyaAI — AI Medical Report Analyzer</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+
+<!-- Premium Animated Background -->
+<div class="bg-scene">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-noise"></div>
+</div>
+
 <div class="page">
+  {% set active_page = 'home' %}
+  {% include 'includes/navbar.html' %}
 
-{% set active_page = 'home' %}
-{% include 'includes/navbar.html' %}
+  <!-- HERO SECTION -->
+  <section class="hero animate-in">
+    <div class="hero-eyebrow">
+      <span class="badge badge-accent">✨ ArogyaAI 4.0</span>
+      <span class="badge badge-success">✓ 100% Private</span>
+    </div>
+    <h1 class="hero-title">
+      Understand Medical Reports<br>in <span class="gradient">Simple Language</span>
+    </h1>
+    <p class="hero-sub">
+      Upload your lab reports, prescriptions, or medical documents. 
+      Our advanced AI will explain them clearly in English or Gujarati.
+    </p>
 
-<section class="hero animate-in">
-  <div class="hero-eyebrow">
-    <span class="badge badge-accent">⚡ AI-Powered</span>
-    <span class="badge badge-cyan">🇮🇳 English + ગુજરાતી</span>
-    {% if current_user.reports_left == 0 %}
-    <a href="/upgrade" class="badge badge-warning" style="text-decoration:none;">
-      ⚠️ {{ 'ક્રેડિટ સમાપ્ત — અપગ્રેડ કરો' if lang == 'gu' else 'Credits used — Upgrade now' }}
-    </a>
-    {% else %}
-    <span class="badge badge-success">🎁 {{ current_user.reports_left }} {{ t.free_left }}</span>
-    {% endif %}
-  </div>
-  <h1 class="hero-title">
-    {{ 'કોઈ પણ' if lang == 'gu' else 'Understand' }}
-    <span class="gradient">{{ 'રિપોર્ટ' if lang == 'gu' else 'Any Report' }}</span><br>
-    {{ 'સરળ ભાષામાં' if lang == 'gu' else 'In Simple Words' }}
-  </h1>
-  <p class="hero-sub">{{ t.upload_sub }}</p>
-</section>
-
-<div class="container-sm animate-in delay-2" style="padding-bottom:56px;">
-
-  {% if error %}
-  <div class="alert alert-error" style="margin-bottom:16px;">
-    <span class="alert-icon">⚠</span>
-    <div>
-      <div>{{ error }}</div>
-      {% if show_symptom_link %}
-      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-        <a href="/analyze-symptoms" class="btn btn-health btn-sm">🩺 {{ 'લક્ષણ વિશ્લેષક' if lang == 'gu' else 'Symptom Analyzer' }}</a>
-        <a href="/analyze-image"    class="btn btn-ghost   btn-sm">📸 {{ 'ઇમેજ અપલોડ' if lang == 'gu' else 'Upload Image' }}</a>
+    <!-- UPLOAD CARD -->
+    <div class="container-md upload-card card-3d animate-in delay-1">
+      <div class="card-glow-overlay"></div>
+      
+      {% if error %}
+      <div class="alert alert-error">
+        <span class="alert-icon">⚠️</span>
+        <span>{{ error }}</span>
       </div>
       {% endif %}
-      {% if show_upgrade %}
-      <a href="/upgrade" style="color:#a5b4fc; font-weight:600; margin-left:6px;">{{ 'અપગ્રેડ →' if lang == 'gu' else 'Upgrade →' }}</a>
+
+      {% if current_user.is_authenticated and current_user.reports_left <= 0 %}
+      <div class="empty-state">
+        <div class="empty-icon">⚡</div>
+        <h3 class="empty-title">Out of Credits</h3>
+        <p class="empty-sub">You have used all your free reports. Upgrade to continue.</p>
+        <a href="/upgrade" class="btn btn-primary btn-lg">Unlock More Scans</a>
+      </div>
+      {% else %}
+      
+      <form action="/" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <div class="drop-zone" id="dropZone">
+          <label for="pdf_file">
+            <span class="drop-icon">📄</span>
+            <div class="drop-title" id="dropTitle">Click to browse or drag PDF here</div>
+            <div class="drop-sub">Secure, private processing. Max 10MB.</div>
+          </label>
+          <input type="file" name="pdf_file" id="pdf_file" accept=".pdf" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
+          <span id="submitLabel">Analyze My Report</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </button>
+      </form>
+      
+      <div class="upload-meta">
+        <div class="upload-meta-item">🔒 Bank-grade security</div>
+        <div class="upload-meta-item">🗑️ Auto-deleted after 1hr</div>
+        <div class="upload-meta-item">⚡ Instant AI analysis</div>
+      </div>
       {% endif %}
     </div>
-  </div>
-  {% endif %}
+  </section>
 
-  <div class="upload-card">
-    <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">
-      <div class="drop-zone" id="dropZone">
-        <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
-        <label for="pdf_file">
-          <span class="drop-icon">📄</span>
-          <div class="drop-title" id="dropTitle">
-            {{ 'PDF ફાઇલ છોડો અથવા ક્લિક કરો' if lang == 'gu' else 'Drop your PDF here or click to browse' }}
-          </div>
-          <div class="drop-sub">{{ 'મેડિકલ · બૅન્ક · કાયદો · શૈક્ષણિક' if lang == 'gu' else 'Medical · Bank · Legal · Academic · Any PDF' }}</div>
-        </label>
+  <!-- FEATURES SECTION -->
+  <section class="container animate-in delay-2" style="padding-bottom: 80px;">
+    <div class="features-grid">
+      <div class="feature-card card-3d">
+        <div class="card-glow-overlay"></div>
+        <div class="feature-icon" style="color:#6ee7b7;">🧠</div>
+        <div class="feature-title">Smart Summaries</div>
+        <div class="feature-desc">Complex medical jargon translated into easy-to-understand language instantly.</div>
       </div>
-      <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span id="submitLabel">{{ 'રિપોર્ટ સમજાવો' if lang == 'gu' else 'Explain My Report' }}</span>
-      </button>
-      <div class="upload-meta">
-        <div class="upload-meta-item">🔒 {{ 'ખાનગી' if lang == 'gu' else 'Private' }}</div>
-        <div class="upload-meta-item">⚡ ~5s</div>
-        <div class="upload-meta-item">🇮🇳 EN + ગુ</div>
+      <div class="feature-card card-3d delay-1">
+        <div class="card-glow-overlay"></div>
+        <div class="feature-icon" style="color:#a5b4fc;">🇮🇳</div>
+        <div class="feature-title">Bilingual Support</div>
+        <div class="feature-desc">Read your results in English and Gujarati with perfect contextual accuracy.</div>
       </div>
-    </form>
-  </div>
+      <div class="feature-card card-3d delay-2">
+        <div class="card-glow-overlay"></div>
+        <div class="feature-icon" style="color:#fcd34d;">🛡️</div>
+        <div class="feature-title">100% Secure</div>
+        <div class="feature-desc">Your reports are completely private and automatically deleted after processing.</div>
+      </div>
+    </div>
+  </section>
 
-  <div style="text-align:center; margin-top:20px; padding:20px; background:rgba(16,185,129,0.04); border:1px solid rgba(16,185,129,0.12); border-radius:var(--radius-lg);">
-    <div style="font-size:1.3rem; margin-bottom:7px;">🩺</div>
-    <div style="font-weight:600; margin-bottom:4px; font-size:0.9rem;">{{ 'લક્ષણો છે?' if lang == 'gu' else 'Have symptoms?' }}</div>
-    <div style="font-size:0.79rem; color:var(--text2); margin-bottom:13px;">{{ 'PDF વગર — ટાઇપ કરો અથવા બોલો' if lang == 'gu' else 'No PDF needed — just type or speak' }}</div>
-    <a href="/analyze-symptoms" class="btn btn-health btn-sm">🎤 {{ 'લક્ષણ વિશ્લેષક' if lang == 'gu' else 'Try Symptom Analyzer' }}</a>
-  </div>
-
-  <div class="features-grid animate-in delay-3">
-    <div class="feature-card"><div class="feature-icon">🏥</div><div class="feature-title">{{ 'મેડિકલ' if lang == 'gu' else 'Medical Reports' }}</div><div class="feature-desc">{{ 'રક્ત, MRI, X-ray' if lang == 'gu' else 'Blood, MRI, X-ray' }}</div></div>
-    <div class="feature-card"><div class="feature-icon">🏦</div><div class="feature-title">{{ 'બૅન્ક' if lang == 'gu' else 'Bank Statements' }}</div><div class="feature-desc">{{ 'વ્યવહારો, બૅલેન્સ' if lang == 'gu' else 'Transactions, balance' }}</div></div>
-    <div class="feature-card"><div class="feature-icon">⚖️</div><div class="feature-title">{{ 'કાયદો' if lang == 'gu' else 'Legal Documents' }}</div><div class="feature-desc">{{ 'કરાર, નિયમો' if lang == 'gu' else 'Contracts, terms' }}</div></div>
-    <div class="feature-card"><div class="feature-icon">🎓</div><div class="feature-title">{{ 'શૈક્ષણિક' if lang == 'gu' else 'Academic' }}</div><div class="feature-desc">{{ 'ગ્રેડ, CGPA' if lang == 'gu' else 'Grades, CGPA' }}</div></div>
-  </div>
-
+  {% include 'includes/footer.html' %}
 </div>
 
-{% include 'includes/footer.html' %}
-</div>
 <script src="/static/script.js"></script>
 </body>
 </html>

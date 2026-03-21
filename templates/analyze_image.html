@@ -6,261 +6,79 @@
   <title>{{ 'ઇમેજ વિશ્લેષણ' if lang == 'gu' else 'Image Analysis' }} — {{ t.app_name }}</title>
   <link rel="stylesheet" href="/static/style.css">
   <style>
-    /* ── Image Analysis Page Styles ── */
-    .image-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      padding: 32px;
-      position: relative;
-      overflow: hidden;
-    }
-    .image-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(6,182,212,0.4), rgba(99,102,241,0.4), transparent);
-    }
-
-    /* Upload / Camera zone */
+    /* Image Analysis custom overrides */
     .capture-zone {
-      border: 1.5px dashed rgba(6,182,212,0.3);
+      border: 1.5px dashed var(--accent-3);
       border-radius: var(--radius-lg);
-      padding: 0;
-      text-align: center;
-      cursor: pointer;
-      transition: var(--transition);
-      background: rgba(6,182,212,0.02);
-      margin-bottom: 18px;
-      overflow: hidden;
-      min-height: 220px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: cyan-breathe 4s ease-in-out infinite;
-      position: relative;
+      padding: 0; text-align: center; cursor: pointer; transition: var(--transition);
+      background: rgba(6,182,212,0.02); margin-bottom: 24px; min-height: 220px;
+      display: flex; align-items: center; justify-content: center; position: relative;
+      animation: cyan-breathe 4s ease-in-out infinite; box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
     }
     @keyframes cyan-breathe {
       0%,100% { border-color: rgba(6,182,212,0.3); }
-      50%      { border-color: rgba(6,182,212,0.6); box-shadow: 0 0 20px rgba(6,182,212,0.08); }
+      50%      { border-color: rgba(6,182,212,0.7); box-shadow: 0 0 20px rgba(6,182,212,0.1), inset 0 2px 10px rgba(0,0,0,0.2); }
     }
-    .capture-zone:hover { border-color: var(--cyan); background: rgba(6,182,212,0.05); animation: none; }
-    .capture-zone.has-image { border-style: solid; border-color: rgba(6,182,212,0.4); animation: none; padding: 0; }
+    .capture-zone:hover { border-color: var(--accent-3); background: rgba(6,182,212,0.06); animation: none; }
+    .capture-zone.has-image { border-style: solid; border-color: rgba(6,182,212,0.5); animation: none; padding: 0; }
+    
+    .capture-placeholder { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .capture-icon { font-size: 3.5rem; animation: float 4s ease-in-out infinite; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.3)); }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .capture-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--text-1); }
+    .capture-sub   { font-size: 0.85rem; color: var(--text-2); font-weight: 500;}
 
-    .capture-placeholder {
-      padding: 40px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-    .capture-icon {
-      font-size: 3rem;
-      animation: float 4s ease-in-out infinite;
-    }
-    .capture-title { font-family: var(--font-display); font-size: 1rem; font-weight: 600; color: var(--text); }
-    .capture-sub   { font-size: 0.8rem; color: var(--text2); }
-
-    /* Image preview */
-    .image-preview {
-      display: none;
-      width: 100%;
-      position: relative;
-    }
-    .image-preview img {
-      width: 100%;
-      max-height: 340px;
-      object-fit: contain;
-      border-radius: calc(var(--radius-lg) - 2px);
-      display: block;
-      background: rgba(0,0,0,0.3);
-    }
+    .image-preview { display: none; width: 100%; position: relative; }
+    .image-preview img { width: 100%; max-height: 360px; object-fit: contain; border-radius: calc(var(--radius-lg) - 2px); display: block; background: rgba(0,0,0,0.5); }
     .image-preview-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.5) 100%);
-      border-radius: calc(var(--radius-lg) - 2px);
-      display: flex;
-      align-items: flex-end;
-      padding: 14px;
-      gap: 8px;
+      position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.7) 100%);
+      border-radius: calc(var(--radius-lg) - 2px); display: flex; align-items: flex-end; padding: 20px; gap: 12px;
     }
-    .preview-filename {
-      flex: 1;
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.8);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .preview-filename { flex: 1; font-size: 0.85rem; color: rgba(255,255,255,0.9); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
     .preview-clear {
-      background: rgba(239,68,68,0.8);
-      border: none;
-      color: white;
-      width: 26px; height: 26px;
-      border-radius: 50%;
-      font-size: 0.75rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      transition: var(--transition);
+      background: rgba(239,68,68,0.9); border: none; color: white; width: 32px; height: 32px; border-radius: 50%;
+      font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: var(--transition); box-shadow: 0 4px 12px rgba(239,68,68,0.4);
     }
-    .preview-clear:hover { background: rgba(239,68,68,1); transform: scale(1.1); }
+    .preview-clear:hover { background: #ef4444; transform: scale(1.15); box-shadow: 0 6px 16px rgba(239,68,68,0.6); }
 
-    /* Source buttons */
-    .source-buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
+    .source-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 24px; }
     .source-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 7px;
-      padding: 14px 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      cursor: pointer;
-      transition: var(--transition);
-      color: var(--text2);
-      font-size: 0.78rem;
-      font-weight: 600;
-      text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px;
+      background: var(--surface-1); border: 1px solid var(--border-2); border-radius: var(--radius-md);
+      cursor: pointer; transition: var(--transition); color: var(--text-2); font-size: 0.85rem; font-weight: 600;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
     }
-    .source-btn:hover {
-      background: var(--surface2);
-      border-color: var(--border2);
-      color: var(--text);
-      transform: translateY(-2px);
-    }
-    .source-btn.active {
-      border-color: var(--cyan);
-      background: rgba(6,182,212,0.08);
-      color: #67e8f9;
-    }
-    .source-btn-icon { font-size: 1.5rem; }
+    .source-btn:hover { background: var(--surface-3); border-color: var(--border-3); color: var(--text-1); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .source-btn.active { border-color: var(--accent-3); background: rgba(6,182,212,0.1); color: #67e8f9; box-shadow: 0 0 0 2px rgba(6,182,212,0.2); }
+    .source-btn-icon { font-size: 1.8rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
 
-    /* Camera modal */
-    .camera-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      background: rgba(0,0,0,0.9);
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 20px;
-      padding: 20px;
-    }
-    .camera-modal.active { display: flex; }
-    .camera-video {
-      width: 100%;
-      max-width: 500px;
-      border-radius: var(--radius-lg);
-      background: #000;
-      aspect-ratio: 4/3;
-      object-fit: cover;
-      border: 2px solid rgba(6,182,212,0.4);
-    }
-    .camera-controls {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    .capture-btn {
-      width: 68px; height: 68px;
-      border-radius: 50%;
-      background: white;
-      border: 4px solid rgba(6,182,212,0.6);
-      cursor: pointer;
-      transition: var(--transition);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem;
-    }
-    .capture-btn:hover { transform: scale(1.05); border-color: var(--cyan); }
+    .camera-modal { display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.95); align-items: center; justify-content: center; flex-direction: column; gap: 24px; padding: 20px; backdrop-filter: blur(10px); }
+    .camera-modal.active { display: flex; animation: fadeUp 0.3s ease both; }
+    @keyframes fadeUp { from{opacity:0;transform:scale(0.95);} to{opacity:1;transform:scale(1);} }
+    .camera-video { width: 100%; max-width: 600px; border-radius: var(--radius-xl); background: #000; aspect-ratio: 4/3; object-fit: cover; border: 2px solid rgba(6,182,212,0.5); box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
+    .camera-controls { display: flex; align-items: center; gap: 24px; }
+    .capture-btn { width: 76px; height: 76px; border-radius: 50%; background: white; border: 6px solid rgba(6,182,212,0.6); cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 10px 30px rgba(6,182,212,0.4); }
+    .capture-btn:hover { transform: scale(1.05); border-color: var(--accent-3); }
     .capture-btn:active { transform: scale(0.95); }
-    .camera-close {
-      position: absolute;
-      top: 20px; right: 20px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      font-size: 1.1rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: var(--transition);
-    }
-    .camera-close:hover { background: rgba(255,255,255,0.2); }
+    .camera-close { position: absolute; top: 24px; right: 24px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; width: 44px; height: 44px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition); backdrop-filter: blur(4px); }
+    .camera-close:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
 
-    /* Category chips */
-    .category-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      margin-bottom: 18px;
-    }
-    .cat-chip {
-      padding: 5px 12px;
-      background: rgba(6,182,212,0.07);
-      border: 1px solid rgba(6,182,212,0.18);
-      border-radius: 999px;
-      font-size: 0.78rem;
-      color: #67e8f9;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .cat-chip:hover, .cat-chip.selected {
-      background: rgba(6,182,212,0.15);
-      border-color: rgba(6,182,212,0.4);
-    }
+    .category-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+    .cat-chip { padding: 8px 16px; background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.2); border-radius: 999px; font-size: 0.85rem; color: #67e8f9; cursor: pointer; transition: var(--transition); font-weight: 600; }
+    .cat-chip:hover, .cat-chip.selected { background: rgba(6,182,212,0.2); border-color: rgba(6,182,212,0.5); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(6,182,212,0.2); }
 
-    /* Loading overlay */
-    .analyzing-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
-      background: rgba(3,7,18,0.92);
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 20px;
-      backdrop-filter: blur(8px);
-    }
-    .analyzing-overlay.active { display: flex; }
-    .analyzing-spinner {
-      width: 64px; height: 64px;
-      border: 3px solid rgba(6,182,212,0.2);
-      border-top-color: var(--cyan);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .analyzing-text {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .analyzing-sub { font-size: 0.85rem; color: var(--text2); }
-
-    /* Canvas (hidden - for capture) */
+    .analyzing-overlay { display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(2,4,8,0.92); align-items: center; justify-content: center; flex-direction: column; gap: 24px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .analyzing-overlay.active { display: flex; animation: fadeUp 0.4s ease both; }
+    .analyzing-spinner { width: 72px; height: 72px; border: 4px solid rgba(6,182,212,0.2); border-top-color: var(--accent-3); border-radius: 50%; animation: spin 1s linear infinite; }
+    .analyzing-text { font-family: var(--font-display); font-size: 1.3rem; font-weight: 800; color: var(--text-1); }
+    .analyzing-sub { font-size: 0.95rem; color: var(--text-2); font-weight: 500; }
     #captureCanvas { display: none; }
-
-    @media (max-width: 480px) {
-      .source-buttons { grid-template-columns: 1fr 1fr; }
-    }
+    @media (max-width: 480px) { .source-buttons { grid-template-columns: 1fr 1fr; } }
   </style>
 </head>
 <body>
-<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+<div class="bg-scene"><div class="bg-orb bg-orb-1" style="animation-direction:reverse;"></div><div class="bg-grid"></div><div class="bg-noise"></div></div>
 
 <!-- Camera Modal -->
 <div class="camera-modal" id="cameraModal">
@@ -270,7 +88,7 @@
   <div class="camera-controls">
     <button class="capture-btn" onclick="capturePhoto()" title="Take photo">📸</button>
   </div>
-  <p style="color:rgba(255,255,255,0.5); font-size:0.82rem;">
+  <p style="color:rgba(255,255,255,0.7); font-size:0.95rem; font-weight:500;">
     {{ 'ફોટો લેવા ક્લિક કરો' if lang == 'gu' else 'Click the button to take photo' }}
   </p>
 </div>
@@ -279,45 +97,37 @@
 <div class="analyzing-overlay" id="analyzingOverlay">
   <div class="analyzing-spinner"></div>
   <div class="analyzing-text">{{ 'AI વિશ્લેષણ કરી રહ્યું છે...' if lang == 'gu' else 'AI is analyzing your image…' }}</div>
-  <div class="analyzing-sub">{{ 'આ થોડી સેકન્ડ લઈ શકે છે' if lang == 'gu' else 'This may take a few seconds' }}</div>
+  <div class="analyzing-sub">{{ 'આ થોડી સેકન્ડ લઈ શકે છે. કૃપા કરી રાહ જુઓ.' if lang == 'gu' else 'This may take a few seconds. Please wait.' }}</div>
 </div>
 
 <div class="page">
 
-   {% set active_page = 'image' %}
-{% include 'includes/navbar.html' %}
+  {% set active_page = 'image' %}
+  {% include 'includes/navbar.html' %}
 
-  <section class="hero" style="padding-bottom:32px;">
+  <section class="hero animate-in" style="padding-bottom:16px;">
     <div class="hero-eyebrow">
-      <span class="badge badge-cyan">📸 {{ 'AI ઇમેજ વિશ્લેષણ' if lang == 'gu' else 'AI Image Analysis' }}</span>
-      <span class="badge badge-accent">🇮🇳 English + ગુજરાતી</span>
+      <span class="badge badge-cyan">📸 {{ 'AI ઇમેજ વિશ્લેષણ' if lang == 'gu' else 'AI Vision Analysis' }}</span>
+      <span class="badge badge-accent">✨ ArogyaAI 4.0</span>
     </div>
     <h1 class="hero-title">
       {{ 'ફોટો' if lang == 'gu' else 'Take a' }} <span class="gradient">{{ 'લો' if lang == 'gu' else 'Photo' }}</span><br>
       {{ 'તરત જ સમજૂતી મેળવો' if lang == 'gu' else 'Get Instant Insights' }}
     </h1>
     <p class="hero-sub">
-      {{ 'ત્વચા, ભોજન, દવા અથવા રિપોર્ટનો ફોટો લો — AI તરત સમજૂતી આપશે' if lang == 'gu' else 'Capture skin problems, food items, medicines, or reports — AI explains instantly' }}
+      {{ 'ત્વચા, ભોજન, દવા અથવા રિપોર્ટનો ફોટો લો — AI તરત સમજૂતી આપશે' if lang == 'gu' else 'Capture skin problems, food items, medicines, or reports. Our AI explains it instantly.' }}
     </p>
-  </section>
 
-  <div class="container-sm" style="padding-bottom:64px;">
+    <!-- Upload Card -->
+    <div class="container-sm image-card card-3d animate-in delay-1" style="margin-top: 40px; padding: 40px;">
+      <div class="card-glow-overlay"></div>
 
-    {% if error %}
-    <div class="alert alert-error" style="margin-bottom:16px;">
-      <span class="alert-icon">⚠</span>
-      <span>{{ error }}</span>
-    </div>
-    {% endif %}
-
-    <div class="image-card animate-in">
-      <form id="imageForm" action="/analyze-image" method="POST" enctype="multipart/form-data">
+      <form id="imageForm" action="/analyze-image" method="POST" enctype="multipart/form-data" style="position:relative; z-index:2;">
         <input type="file" id="imageInput" name="image" accept="image/*" style="display:none" capture>
         <input type="hidden" id="categoryInput" name="category" value="general">
 
-        <!-- Source selector -->
         <div style="margin-bottom:12px;">
-          <label class="form-label">
+          <label class="form-label" style="font-size:0.8rem;">
             {{ 'ઇમેજ સ્ત્રોત પસંદ કરો' if lang == 'gu' else 'Choose image source' }}
           </label>
         </div>
@@ -336,7 +146,6 @@
           </button>
         </div>
 
-        <!-- Image preview / drop zone -->
         <div class="capture-zone" id="captureZone" onclick="document.getElementById('imageInput').click()">
           <div class="capture-placeholder" id="capturePlaceholder">
             <span class="capture-icon">📸</span>
@@ -344,7 +153,7 @@
               {{ 'ઇમેજ અહીં છોડો' if lang == 'gu' else 'Drop image here or click to browse' }}
             </div>
             <div class="capture-sub">
-              {{ 'JPG, PNG, WEBP સ્વીકૃત · મહત્તમ 5MB' if lang == 'gu' else 'JPG, PNG, WEBP accepted · Max 5MB' }}
+              {{ 'JPG, PNG, WEBP · મહત્તમ 5MB' if lang == 'gu' else 'Secure processing · JPG, PNG, WEBP · Max 5MB' }}
             </div>
           </div>
           <div class="image-preview" id="imagePreview">
@@ -356,9 +165,8 @@
           </div>
         </div>
 
-        <!-- Category selector -->
-        <div style="margin-bottom:8px;">
-          <label class="form-label">
+        <div style="margin-bottom:12px;">
+          <label class="form-label" style="font-size:0.8rem;">
             {{ 'શું છે આ?' if lang == 'gu' else 'What is this?' }}
           </label>
         </div>
@@ -371,9 +179,8 @@
           <span class="cat-chip" onclick="selectCategory('xray', this)">🩻 {{ 'X-Ray' if lang == 'gu' else 'X-Ray' }}</span>
         </div>
 
-        <!-- Additional context -->
-        <div class="form-group" style="margin-bottom:18px;">
-          <label class="form-label">
+        <div class="form-group" style="margin-bottom:24px;">
+          <label class="form-label" style="font-size:0.8rem;">
             {{ 'વધારાની માહિતી (વૈકલ્પિક)' if lang == 'gu' else 'Additional context (optional)' }}
           </label>
           <input
@@ -381,57 +188,59 @@
             type="text"
             name="context"
             placeholder="{{ 'જેમ કે: ૩ દિવસથી ખંજવાળ આવે છે...' if lang == 'gu' else 'e.g. itching for 3 days, taken after meal...' }}"
+            style="padding: 16px; background:rgba(0,0,0,0.5);"
           >
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg btn-full" id="analyzeBtn"
-          style="background:linear-gradient(135deg,#06b6d4,#6366f1); box-shadow:0 0 20px rgba(6,182,212,0.3);"
+          style="background:linear-gradient(135deg,#06b6d4,#6366f1); box-shadow:0 0 20px rgba(6,182,212,0.3); font-size:1.05rem;"
           disabled>
-          <span id="analyzeBtnLabel">
+          <span id="analyzeBtnLabel" style="display:flex; align-items:center; gap:8px;">
             {{ 'ઇમેજ પસંદ કરો' if lang == 'gu' else 'Select an image first' }}
           </span>
         </button>
 
-        <div class="disclaimer-box" style="margin-top:16px;">
-          ⚠️ <span>{{ 'આ તબીબી નિદાન નથી. AI ફક્ત સામાન્ય માહિતી આપે છે.' if lang == 'gu' else 'Not a medical diagnosis. AI provides general information only. Always consult a doctor.' }}</span>
+        <div class="alert" style="margin-top:24px; margin-bottom:0; background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.25); color:#fcd34d;">
+          <span class="alert-icon">⚠️</span>
+          <span style="font-size:0.85rem;">{{ 'આ તબીબી નિદાન નથી. AI ફક્ત સામાન્ય માહિતી આપે છે.' if lang == 'gu' else 'Not a medical diagnosis. AI provides general information only. Always consult a doctor.' }}</span>
         </div>
 
       </form>
     </div>
 
-    <!-- How it works -->
-    <div style="margin-top:28px;" class="animate-in delay-3">
-      <div style="font-size:0.76rem; font-weight:600; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; text-align:center; margin-bottom:14px;">
+  </section>
+
+  <div class="container-sm" style="padding-bottom:80px;">
+    {% if error %}
+    <div class="alert alert-error animate-in delay-2">
+      <span class="alert-icon">⚠️</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div style="margin-top:40px;" class="animate-in delay-2">
+      <div style="font-size:0.85rem; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.1em; text-align:center; margin-bottom:20px;">
         {{ 'કેવી રીતે કામ કરે છે' if lang == 'gu' else 'How it works' }}
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div class="feature-card" style="text-align:center;">
-          <div class="feature-icon">📸</div>
+      <div class="features-grid" style="grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top:0;">
+        <div class="feature-card card-3d" style="text-align:center; padding:24px;">
+          <div class="card-glow-overlay"></div>
+          <div class="feature-icon" style="margin: 0 auto 16px;">📸</div>
           <div class="feature-title">{{ 'ફોટો લો' if lang == 'gu' else 'Take Photo' }}</div>
-          <div class="feature-desc">{{ 'કૅમેરા અથવા ગૅલેરી' if lang == 'gu' else 'Camera or gallery' }}</div>
+          <div class="feature-desc">{{ 'કૅમેરા અથવા ગૅલેરી' if lang == 'gu' else 'Upload from device' }}</div>
         </div>
-        <div class="feature-card" style="text-align:center;">
-          <div class="feature-icon">🤖</div>
+        <div class="feature-card card-3d" style="text-align:center; padding:24px;">
+          <div class="card-glow-overlay"></div>
+          <div class="feature-icon" style="margin: 0 auto 16px; color:var(--accent-3);">🤖</div>
           <div class="feature-title">{{ 'AI વિશ્લેષણ' if lang == 'gu' else 'AI Analyzes' }}</div>
-          <div class="feature-desc">{{ 'સેકન્ડોમાં' if lang == 'gu' else 'In seconds' }}</div>
-        </div>
-        <div class="feature-card" style="text-align:center;">
-          <div class="feature-icon">💬</div>
-          <div class="feature-title">{{ 'સ્પષ્ટ જવાબ' if lang == 'gu' else 'Clear Answer' }}</div>
-          <div class="feature-desc">{{ 'સરળ ભાષામાં' if lang == 'gu' else 'Plain language' }}</div>
-        </div>
-        <div class="feature-card" style="text-align:center;">
-          <div class="feature-icon">🇮🇳</div>
-          <div class="feature-title">{{ 'ગુજરાતી' if lang == 'gu' else 'Gujarati' }}</div>
-          <div class="feature-desc">{{ 'English + ગુજરાતી' if lang == 'gu' else 'English + ગુજરાતી' }}</div>
+          <div class="feature-desc">{{ 'સેકન્ડોમાં' if lang == 'gu' else 'Gets results instantly' }}</div>
         </div>
       </div>
     </div>
-
   </div>
+
 {% include 'includes/footer.html' %}
 </div>
-
 
 <script>
 /* ── State ──────────────────────────────────── */
@@ -449,45 +258,32 @@ const analyzeBtnLbl = document.getElementById('analyzeBtnLabel');
 const categoryInput = document.getElementById('categoryInput');
 const overlay       = document.getElementById('analyzingOverlay');
 
-/* ── Image input handler ─────────────────── */
 imageInput.addEventListener('change', function() {
-  if (this.files && this.files[0]) {
-    showPreview(this.files[0]);
-  }
+  if (this.files && this.files[0]) showPreview(this.files[0]);
 });
 
-/* ── Drag & drop ─────────────────────────── */
 captureZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  captureZone.style.borderColor = 'var(--cyan)';
+  e.preventDefault(); captureZone.style.borderColor = 'var(--accent-3)';
 });
-captureZone.addEventListener('dragleave', () => {
-  captureZone.style.borderColor = '';
-});
+captureZone.addEventListener('dragleave', () => { captureZone.style.borderColor = ''; });
 captureZone.addEventListener('drop', e => {
-  e.preventDefault();
-  captureZone.style.borderColor = '';
+  e.preventDefault(); captureZone.style.borderColor = '';
   const file = e.dataTransfer.files[0];
   if (file && file.type.startsWith('image/')) {
-    const dt = new DataTransfer();
-    dt.items.add(file);
+    const dt = new DataTransfer(); dt.items.add(file);
     imageInput.files = dt.files;
     showPreview(file);
   }
 });
 
-/* ── Show preview ────────────────────────── */
 function showPreview(file) {
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('Image too large. Max 5MB allowed.', 'error');
-    return;
-  }
+  if (file.size > 5 * 1024 * 1024) { window.showToast('Image too large. Max 5MB allowed.', 'error'); return; }
   const reader = new FileReader();
   reader.onload = e => {
-    previewImg.src       = e.target.result;
+    previewImg.src = e.target.result;
     previewName.textContent = file.name;
     placeholder.style.display = 'none';
-    preview.style.display     = 'block';
+    preview.style.display = 'block';
     captureZone.classList.add('has-image');
     captureZone.onclick = null;
     enableAnalyze();
@@ -495,59 +291,45 @@ function showPreview(file) {
   reader.readAsDataURL(file);
 }
 
-/* ── Clear image ─────────────────────────── */
 function clearImage(e) {
   e.stopPropagation();
-  imageInput.value      = '';
-  previewImg.src        = '';
-  capturedBlob          = null;
-  placeholder.style.display = 'flex';
-  preview.style.display     = 'none';
+  imageInput.value = ''; previewImg.src = ''; capturedBlob = null;
+  placeholder.style.display = 'flex'; preview.style.display = 'none';
   captureZone.classList.remove('has-image');
   captureZone.onclick = () => imageInput.click();
   disableAnalyze();
 }
 
 function enableAnalyze() {
-  analyzeBtn.disabled      = false;
-  analyzeBtnLbl.textContent = '{{ "ઇમેજ વિશ્લેષણ કરો" if lang == "gu" else "Analyze Image" }}';
-  analyzeBtn.style.opacity  = '1';
+  analyzeBtn.disabled = false;
+  analyzeBtnLbl.innerHTML = '{{ "ઇમેજ વિશ્લેષણ કરો" if lang == "gu" else "Analyze Image ✨" }}';
+  analyzeBtn.style.opacity = '1';
 }
 function disableAnalyze() {
-  analyzeBtn.disabled      = true;
+  analyzeBtn.disabled = true;
   analyzeBtnLbl.textContent = '{{ "ઇમેજ પસંદ કરો" if lang == "gu" else "Select an image first" }}';
-  analyzeBtn.style.opacity  = '0.6';
+  analyzeBtn.style.opacity = '0.6';
 }
 
-/* ── Category selector ───────────────────── */
 function selectCategory(value, el) {
   document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
   categoryInput.value = value;
 }
 
-/* ── Camera ──────────────────────────────── */
 async function openCamera() {
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } }
-    });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 960 } } });
     document.getElementById('cameraVideo').srcObject = stream;
     document.getElementById('cameraModal').classList.add('active');
   } catch (err) {
-    if (err.name === 'NotAllowedError') {
-      showToast('Camera permission denied. Please allow camera access.', 'error');
-    } else {
-      showToast('Camera not available. Please upload an image instead.', 'error');
-    }
+    if (err.name === 'NotAllowedError') window.showToast('Camera permission denied.', 'error');
+    else window.showToast('Camera not available.', 'error');
   }
 }
 
 function closeCamera() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   document.getElementById('cameraModal').classList.remove('active');
   document.getElementById('cameraVideo').srcObject = null;
 }
@@ -555,53 +337,24 @@ function closeCamera() {
 function capturePhoto() {
   const video  = document.getElementById('cameraVideo');
   const canvas = document.getElementById('captureCanvas');
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
+  canvas.width  = video.videoWidth; canvas.height = video.videoHeight;
   canvas.getContext('2d').drawImage(video, 0, 0);
-
   canvas.toBlob(blob => {
     capturedBlob = blob;
     const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
-    const dt   = new DataTransfer();
-    dt.items.add(file);
+    const dt   = new DataTransfer(); dt.items.add(file);
     imageInput.files = dt.files;
-    showPreview(file);
-    closeCamera();
+    showPreview(file); closeCamera();
   }, 'image/jpeg', 0.92);
 }
 
-/* ── Form submit ─────────────────────────── */
 document.getElementById('imageForm').addEventListener('submit', function(e) {
   if (!imageInput.files || !imageInput.files[0]) {
-    e.preventDefault();
-    showToast('Please select or capture an image first.', 'error');
-    return;
+    e.preventDefault(); window.showToast('Please select an image first.', 'error'); return;
   }
   overlay.classList.add('active');
   analyzeBtn.disabled = true;
 });
-
-/* ── Toast ───────────────────────────────── */
-function showToast(msg, type = 'info') {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.style.cssText = `
-    position:fixed; bottom:24px; right:24px; z-index:9999;
-    padding:11px 16px; border-radius:var(--radius-sm);
-    font-size:0.85rem; font-weight:500;
-    display:flex; align-items:center; gap:8px;
-    animation:fadeUp 0.3s ease both;
-    backdrop-filter:blur(12px);
-    ${type === 'error'
-      ? 'background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#fca5a5;'
-      : 'background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); color:#6ee7b7;'}
-  `;
-  toast.textContent = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
-}
 </script>
 
 <script src="/static/script.js"></script>

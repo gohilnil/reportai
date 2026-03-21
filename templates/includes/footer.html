@@ -2,53 +2,61 @@
 <style>
 .site-footer {
   position: relative; z-index: 5; margin-top: auto;
-  border-top: 1px solid var(--border); background: rgba(3,7,18,0.85);
-  backdrop-filter: blur(20px); padding: 48px 2.5rem 24px;
+  border-top: 1px solid var(--border-1); background: rgba(2,4,8,0.7);
+  backdrop-filter: var(--glass-blur-2); -webkit-backdrop-filter: var(--glass-blur-2);
+  padding: 60px 2.5rem 32px;
 }
 .footer-grid {
-  max-width: 1100px; margin: 0 auto;
-  display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr;
-  gap: 40px; padding-bottom: 40px;
-  border-bottom: 1px solid var(--border); margin-bottom: 24px;
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 40px; padding-bottom: 48px;
+  border-bottom: 1px solid var(--border-1); margin-bottom: 32px;
 }
 .footer-brand-name {
-  font-family: var(--font-display); font-size: 1.2rem; font-weight: 800;
+  font-family: var(--font-display); font-size: 1.4rem; font-weight: 800;
   background: linear-gradient(135deg, #a5b4fc, #c4b5fd, #67e8f9);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text; margin-bottom: 10px;
+  background-clip: text; margin-bottom: 12px; display: inline-block;
+  letter-spacing: -0.5px;
 }
 .footer-brand-desc {
-  font-size: 0.82rem; color: var(--text2); line-height: 1.7;
-  max-width: 260px; margin-bottom: 18px; font-weight: 300;
+  font-size: 0.9rem; color: var(--text-2); line-height: 1.7;
+  max-width: 320px; margin-bottom: 24px; font-weight: 300;
 }
-.footer-badges { display: flex; gap: 7px; flex-wrap: wrap; }
+.footer-badges { display: flex; gap: 8px; flex-wrap: wrap; }
 .footer-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 10px; border-radius: 999px; font-size: 0.68rem; font-weight: 600;
-  background: var(--surface); border: 1px solid var(--border); color: var(--text2);
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; font-family: var(--font-display);
+  background: var(--surface-1); border: 1px solid var(--border-2); color: var(--text-2);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.05); transition: var(--transition);
 }
+.footer-badge:hover { background: var(--surface-2); border-color: var(--border-3); color: var(--text-1); transform: translateY(-1px); }
+
 .footer-col-title {
-  font-family: var(--font-display); font-size: 0.78rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text); margin-bottom: 14px;
+  font-family: var(--font-display); font-size: 0.82rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-1); margin-bottom: 20px;
 }
-.footer-links-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.footer-links-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
 .footer-links-list a {
-  font-size: 0.83rem; color: var(--text2); text-decoration: none;
-  transition: var(--transition); display: flex; align-items: center; gap: 6px;
+  font-size: 0.9rem; color: var(--text-2); text-decoration: none;
+  transition: var(--transition); display: flex; align-items: center; gap: 8px; font-weight: 500;
 }
-.footer-links-list a:hover { color: var(--text); }
-.footer-links-list a .fl-icon { font-size: 0.8rem; opacity: 0.6; }
+.footer-links-list a:hover { color: var(--text-1); transform: translateX(4px); }
+.footer-links-list a .fl-icon { font-size: 1rem; opacity: 0.8; transition: transform 0.3s var(--spring); }
+.footer-links-list a:hover .fl-icon { transform: scale(1.1) rotate(5deg); }
+
 .footer-bottom {
-  max-width: 1100px; margin: 0 auto;
+  max-width: 1200px; margin: 0 auto;
   display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 12px;
+  flex-wrap: wrap; gap: 16px;
 }
-.footer-copyright { font-size: 0.78rem; color: var(--text2); }
-.footer-disclaimer { font-size: 0.72rem; color: var(--text3); max-width: 400px; line-height: 1.5; }
+.footer-copyright { font-size: 0.85rem; color: var(--text-2); font-weight: 500; }
+.footer-disclaimer { font-size: 0.8rem; color: var(--text-3); max-width: 500px; line-height: 1.6; }
+
 @media (max-width: 768px) {
-  .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
   .footer-brand-col { grid-column: 1 / -1; }
-  .site-footer { padding: 36px 1.5rem 100px; }
+  .site-footer { padding: 48px 1.5rem 100px; }
 }
 @media (max-width: 480px) {
   .footer-grid { grid-template-columns: 1fr; }
@@ -61,12 +69,12 @@
     <div class="footer-brand-col">
       <div class="footer-brand-name">{{ t.app_name }}</div>
       <div class="footer-brand-desc">
-        {{ 'AI-સંચાલિત આરોગ્ય સહાયક — PDF, ઇમેજ, અને લક્ષણ વિશ્લેષણ સરળ ભાષામાં.' if lang == 'gu' else 'AI-powered health assistant for Bharat. Understand medical reports, symptoms, and images instantly.' }}
+        {{ 'AI-સંચાલિત આરોગ્ય સહાયક — PDF, ઇમેજ, અને લક્ષણ વિશ્લેષણ સરળ ભાષામાં.' if lang == 'gu' else 'The ultimate AI-powered health assistant. Understand medical reports, symptoms, and images instantly.' }}
       </div>
       <div class="footer-badges">
-        <span class="footer-badge">🇮🇳 Made for Bharat</span>
-        <span class="footer-badge">🔒 Private & Secure</span>
-        <span class="footer-badge">⚡ Powered by AI</span>
+        <span class="footer-badge">🇮🇳 Built for Bharat</span>
+        <span class="footer-badge">🔒 100% Secure</span>
+        <span class="footer-badge">⚡ Lightning Fast</span>
       </div>
     </div>
 
@@ -101,48 +109,48 @@
       <div class="footer-col-title">{{ 'ભાષા' if lang == 'gu' else 'Language' }}</div>
       <ul class="footer-links-list">
         <li>
-          <a href="/set-language/en" {% if lang == 'en' %}style="color:var(--text); font-weight:600;"{% endif %}>
+          <a href="/set-language/en" {% if lang == 'en' %}style="color:var(--text-1); font-weight:700;"{% endif %}>
             <span class="fl-icon">🇬🇧</span>English
-            {% if lang == 'en' %}<span style="margin-left:auto; font-size:0.65rem; color:#6ee7b7;">✓</span>{% endif %}
+            {% if lang == 'en' %}<span style="margin-left:auto; font-size:0.75rem; color:var(--status-low); text-shadow:0 0 8px rgba(16,185,129,0.5);">✓</span>{% endif %}
           </a>
         </li>
         <li>
-          <a href="/set-language/gu" {% if lang == 'gu' %}style="color:var(--text); font-weight:600;"{% endif %}>
+          <a href="/set-language/gu" {% if lang == 'gu' %}style="color:var(--text-1); font-weight:700;"{% endif %}>
             <span class="fl-icon">🇮🇳</span>ગુજરાતી
-            {% if lang == 'gu' %}<span style="margin-left:auto; font-size:0.65rem; color:#6ee7b7;">✓</span>{% endif %}
+            {% if lang == 'gu' %}<span style="margin-left:auto; font-size:0.75rem; color:var(--status-low); text-shadow:0 0 8px rgba(16,185,129,0.5);">✓</span>{% endif %}
           </a>
         </li>
       </ul>
-      <div style="margin-top:20px;">
-        <div class="footer-col-title">{{ 'સ્ટેટસ' if lang == 'gu' else 'Status' }}</div>
+      <div style="margin-top:28px;">
+        <div class="footer-col-title">{{ 'સ્ટેટસ' if lang == 'gu' else 'System' }}</div>
         <ul class="footer-links-list">
-          <li><a href="/health"><span class="fl-icon">💚</span>{{ 'App Status' }}</a></li>
+          <li><a href="/health"><span class="fl-icon">💚</span>{{ 'All Systems Normal' }}</a></li>
         </ul>
       </div>
     </div>
   </div>
 
   <div class="footer-bottom">
-    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
       <span class="footer-copyright">© 2026 {{ t.app_name }}. {{ 'બધા અધિકાર સુરક્ષિત.' if lang == 'gu' else 'All rights reserved.' }}</span>
       <span class="footer-disclaimer">⚕️ {{ t.disclaimer }}</span>
     </div>
-    <span style="font-size:0.72rem; color:var(--text2);">Built with ❤️ for Bharat</span>
+    <span style="font-size:0.8rem; color:var(--text-3); font-weight:500;">Designed with precision.</span>
   </div>
 </footer>
 
 <nav class="mobile-nav">
   <a href="/" class="mobile-nav-item {% if active_page == 'home' %}active{% endif %}">
-    <span class="icon">📄</span><span>{{ t.nav_reports }}</span>
+    <span class="icon">📄</span><span>{{ 'રિપોર્ટ્સ' if lang == 'gu' else 'Reports' }}</span>
   </a>
   <a href="/analyze-symptoms" class="mobile-nav-item {% if active_page == 'symptoms' %}active{% endif %}">
-    <span class="icon">🩺</span><span>{{ t.nav_symptoms }}</span>
+    <span class="icon">🩺</span><span>{{ 'લક્ષણો' if lang == 'gu' else 'Symptoms' }}</span>
   </a>
   <a href="/analyze-image" class="mobile-nav-item {% if active_page == 'image' %}active{% endif %}">
-    <span class="icon">📸</span><span>{{ t.nav_image }}</span>
+    <span class="icon">📸</span><span>{{ 'ઇમેજ' if lang == 'gu' else 'Images' }}</span>
   </a>
   <a href="/history" class="mobile-nav-item {% if active_page == 'history' %}active{% endif %}">
-    <span class="icon">📋</span><span>{{ t.nav_history }}</span>
+    <span class="icon">📋</span><span>{{ 'ઇતિહાસ' if lang == 'gu' else 'History' }}</span>
   </a>
   <a href="/account" class="mobile-nav-item {% if active_page == 'account' %}active{% endif %}">
     <span class="icon">👤</span><span>{{ 'એકાઉન્ટ' if lang == 'gu' else 'Account' }}</span>
