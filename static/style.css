@@ -189,3 +189,140 @@ img,svg{max-width:100%;display:block;}
 @media (max-width: 640px){.analysis-grid{grid-template-columns:1fr;}}
 }
 @media (max-width: 480px){.features-grid{grid-template-columns:1fr;}.auth-page{padding:24px 16px;align-items:flex-start;}.auth-card{padding:28px 20px;max-width:100%;border-radius:var(--radius-lg);}.result-tabs{flex-wrap:wrap;border-radius:var(--radius-md);}.result-tab,.tab-indicator{border-radius:var(--radius-sm);}.tab-indicator{bottom:0;height:auto;}} 
+
+/* ═══════════════════════════════════════
+   MOBILE FIX PATCH — add to END of style.css
+   Fixes: floating navbar position, mobile header,
+          tab indicator, bottom nav spacing
+═══════════════════════════════════════ */
+
+/* ── FIX 1: Navbar wrapper — must be at very top, not floating ── */
+.nav-wrapper {
+  position: sticky !important;
+  top: 0 !important;           /* was top:24px which pushed it below viewport */
+  z-index: 500;
+  padding: 0 !important;       /* remove horizontal padding on mobile */
+  pointer-events: none;
+}
+
+.navbar {
+  pointer-events: auto;
+  border-radius: 0 !important; /* full width on mobile */
+  border-left: none !important;
+  border-right: none !important;
+  max-width: 100% !important;
+}
+
+/* Desktop — restore pill shape */
+@media (min-width: 769px) {
+  .nav-wrapper {
+    padding: 0 24px !important;
+  }
+  .navbar {
+    max-width: 900px !important;
+    border-radius: 999px !important;
+    border-left: 1px solid var(--border-2) !important;
+    border-right: 1px solid var(--border-2) !important;
+  }
+}
+
+/* ── FIX 2: Mobile — hide desktop nav items ── */
+@media (max-width: 768px) {
+  .nav-center { display: none !important; }
+  .nav-credits { display: none !important; }
+
+  /* Lang toggle — smaller on mobile */
+  .lang-toggle-btn { padding: 3px 8px; font-size: 0.7rem; }
+
+  /* Show only avatar in profile trigger, no name */
+  .profile-trigger .p-name { display: none; }
+  .profile-trigger { padding: 4px; gap: 0; }
+
+  /* Profile dropdown opens upward on mobile if near bottom */
+  .p-dropdown-menu {
+    right: 0;
+    left: auto;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+/* ── FIX 3: Mobile bottom nav — proper display ── */
+@media (max-width: 768px) {
+  .mobile-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 1000;
+    background: rgba(4,11,24,0.92);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border-top: 1px solid var(--border-2);
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    color: var(--text-2);
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: var(--transition);
+    text-decoration: none;
+    position: relative;
+  }
+  .mobile-nav-item .icon { font-size: 1.2rem; transition: transform 0.3s var(--spring); }
+  .mobile-nav-item.active { color: var(--accent-1); }
+  .mobile-nav-item.active .icon {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 0 8px rgba(99,102,241,0.6));
+  }
+  .mobile-nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: -8px; left: 50%; transform: translateX(-50%);
+    width: 32px; height: 3px;
+    background: var(--accent-1);
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.5);
+  }
+
+  /* Page padding so content doesn't hide behind bottom nav */
+  .page { padding-bottom: 80px !important; }
+}
+
+/* ── FIX 4: Tab indicator broken on mobile ── */
+@media (max-width: 480px) {
+  .result-tabs { padding: 4px; gap: 4px; border-radius: var(--radius-md); }
+  .result-tab  { padding: 10px 8px; font-size: 0.82rem; border-radius: var(--radius-sm); }
+  .tab-indicator {
+    width: calc(50% - 4px);
+    height: auto !important; /* FIX: was height:auto which collapsed it */
+    top: 4px !important;
+    bottom: 4px !important;
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ── FIX 5: General mobile spacing ── */
+@media (max-width: 768px) {
+  .hero { padding: 60px 1rem 40px; }
+  .container-sm, .container-md, .container { padding: 0 1rem; }
+  .upload-card { padding: 24px 16px; margin-top: 0; }
+  .features-grid { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 28px; }
+  .analysis-grid { grid-template-columns: 1fr; }
+  .auth-card { padding: 28px 20px; border-radius: var(--radius-lg); }
+  .section-card { padding: 20px 16px; }
+}
+
+@media (max-width: 380px) {
+  .features-grid { grid-template-columns: 1fr; }
+  .nav-brand { font-size: 1rem; }
+  .mobile-nav-item { font-size: 0.55rem; }
+  .mobile-nav-item .icon { font-size: 1.1rem; }
+}
