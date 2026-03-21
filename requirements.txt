@@ -7,3 +7,4 @@ python-dotenv
 groq
 razorpay
 gunicorn
+flask-dance

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — {{ t.app_name }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .admin-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .admin-stat::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .admin-stat:nth-child(1)::after { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+    .admin-stat:nth-child(2)::after { background: linear-gradient(90deg, #10b981, #06b6d4); }
+    .admin-stat:nth-child(3)::after { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+    .admin-stat:nth-child(4)::after { background: linear-gradient(90deg, #06b6d4, #6366f1); }
+    .admin-stat-value {
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+    .admin-stat-label { font-size: 0.78rem; color: var(--text2); }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .admin-table th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text2);
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: rgba(240,244,255,0.8);
+    }
+    .admin-table tr:hover td { background: var(--surface2); }
+    .admin-table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .admin-table-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-display);
+      font-size: 0.92rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .action-link {
+      font-size: 0.75rem;
+      color: #a5b4fc;
+      text-decoration: none;
+      padding: 3px 8px;
+      background: rgba(99,102,241,0.1);
+      border-radius: 4px;
+      transition: var(--transition);
+    }
+    .action-link:hover { background: rgba(99,102,241,0.2); }
+
+    .admin-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+<div class="page">
+
+  <nav class="navbar">
+    <a href="/" class="nav-brand">{{ t.app_name }}</a>
+    <div class="nav-center">
+      <a href="/admin" class="nav-link active" style="color:#fcd34d;">⚙️ Admin</a>
+      <a href="/" class="nav-link">📄 App</a>
+    </div>
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="nav-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">{{ current_user.initials }}</div>
+        <span>{{ current_user.first_name }}</span>
+      </div>
+      <a href="/logout" class="btn btn-ghost btn-sm">{{ t.logout }}</a>
+    </div>
+  </nav>
+
+  <div class="container" style="padding-top:36px; padding-bottom:64px;">
+
+    <!-- Header -->
+    <div style="margin-bottom:28px;" class="animate-in">
+      <div class="badge badge-warning" style="margin-bottom:10px;">⚙️ Admin Only</div>
+      <h1 style="font-family:var(--font-display); font-size:1.8rem; font-weight:800;">
+        Admin Dashboard
+      </h1>
+      <p style="color:var(--text2); font-size:0.88rem; margin-top:4px;">
+        Complete overview of ArogyaAI
+      </p>
+    </div>
+
+    <!-- Stats -->
+    <div class="admin-stats animate-in delay-1">
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ total_users }}</div>
+        <div class="admin-stat-label">👥 Total Users</div>
+      </div>
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ paid_users }}</div>
+        <div class="admin-stat-label">💳 Paid Users</div>
+      </div>
+      <div class="admin-stat">
+        <div class="admin-stat-value">{{ total_reports }}</div>
+        <div class="admin-stat-label">📄 Total Reports</div>
+      </div>
+      <div class="admin-stat">
+        <div class="admin-stat-value">₹{{ total_revenue }}</div>
+        <div class="admin-stat-label">💰 Total Revenue</div>
+      </div>
+    </div>
+
+    <!-- Recent Users -->
+    <div class="admin-table-wrap animate-in delay-2">
+      <div class="admin-table-header">
+        <span>👥 Recent Users</span>
+        <span style="font-size:0.78rem; color:var(--text2);">Last 10 signups</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Reports Used</th>
+              <th>Credits Left</th>
+              <th>Plan</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in recent_users %}
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div style="width:28px; height:28px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:700; color:white; flex-shrink:0;">
+                    {{ user.initials }}
+                  </div>
+                  {{ user.name }}
+                  {% if user.is_admin %}
+                  <span class="admin-badge" style="background:rgba(245,158,11,0.15); color:#fcd34d;">Admin</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td style="color:var(--text2);">{{ user.email }}</td>
+              <td>{{ user.reports_used }}</td>
+              <td>
+                <span style="color:{% if user.reports_left == 0 %}#fca5a5{% else %}#6ee7b7{% endif %}; font-weight:600;">
+                  {{ user.reports_left }}
+                </span>
+              </td>
+              <td>
+                {% if user.is_paid %}
+                <span class="admin-badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc;">Pro</span>
+                {% else %}
+                <span class="admin-badge" style="background:rgba(255,255,255,0.06); color:var(--text2);">Free</span>
+                {% endif %}
+              </td>
+              <td style="color:var(--text2);">{{ user.created_at.strftime('%d %b %Y') }}</td>
+              <td>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <a href="/admin/add-credits/{{ user.id }}/10" class="action-link">+10 Credits</a>
+                  <a href="/admin/add-credits/{{ user.id }}/25" class="action-link">+25 Credits</a>
+                  {% if not user.is_admin %}
+                  <a href="/admin/make-admin/{{ user.id }}" class="action-link" style="color:#fcd34d; background:rgba(245,158,11,0.1);">Make Admin</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Payments -->
+    <div class="admin-table-wrap animate-in delay-3">
+      <div class="admin-table-header">
+        <span>💳 Recent Payments</span>
+        <span style="font-size:0.78rem; color:var(--text2);">Last 10 transactions</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>User</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for payment in recent_payments %}
+            <tr>
+              <td style="font-family:monospace; font-size:0.78rem; color:var(--text2);">
+                {{ payment.razorpay_order_id[:20] }}...
+              </td>
+              <td>{{ payment.user.name if payment.user else 'Unknown' }}</td>
+              <td>
+                <span class="admin-badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc; text-transform:capitalize;">
+                  {{ payment.plan_id }}
+                </span>
+              </td>
+              <td style="color:#6ee7b7; font-weight:700;">₹{{ payment.amount // 100 }}</td>
+              <td>
+                <span class="admin-badge"
+                  style="{% if payment.status == 'paid' %}background:rgba(16,185,129,0.15); color:#6ee7b7;{% else %}background:rgba(239,68,68,0.15); color:#fca5a5;{% endif %}">
+                  {{ payment.status | capitalize }}
+                </span>
+              </td>
+              <td style="color:var(--text2);">{{ payment.created_at.strftime('%d %b %Y') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    <span class="footer-brand">{{ t.app_name }} Admin</span>
+    <span>© 2026</span>
+    <div class="footer-right">
+      <a href="/" class="footer-link">Back to App</a>
+      <a href="/logout" class="footer-link">{{ t.logout }}</a>
+    </div>
+  </footer>
+
+</div>
+<script src="/static/script.js"></script>
+</body>
+</html>

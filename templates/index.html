@@ -31,6 +31,21 @@
           <button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button>
         </a>
       </div>
+      <div class="nav-right">
+  <!-- Credits pill -->
+  <div style="display:flex; align-items:center; gap:6px; padding:4px 12px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); border-radius:999px; font-size:0.78rem; color:#a5b4fc; font-weight:600;">
+    ⚡ {{ current_user.reports_left }} {{ 'ક્રેડિટ' if lang == 'gu' else 'credits' }}
+  </div>
+  <div class="lang-toggle">
+    <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
+    <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
+  </div>
+  <a href="/account" class="nav-user" style="text-decoration:none;">
+    <div class="nav-avatar">{{ current_user.initials }}</div>
+    <span>{{ current_user.first_name }}</span>
+  </a>
+  <a href="/logout" class="btn btn-ghost btn-sm">{{ t.logout }}</a>
+</div>
       <div class="nav-user">
         <div class="nav-avatar">{{ current_user.name[0].upper() }}</div>
         <span>{{ current_user.name.split()[0] }}</span>
