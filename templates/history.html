@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Reports — ReportAI</title>
+  <link rel="stylesheet" href="/static/style.css">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js" defer></script>
+</head>
+<body>
+
+<div class="bg-texture"></div>
+<div id="canvas-container"></div>
+
+<div class="page">
+  <nav class="navbar stagger-1">
+    <a href="/" class="nav-brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#brandGrad)" stroke-width="2.5"><linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#c084fc"/></linearGradient><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      ReportAI
+    </a>
+    
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="nav-avatar">{{ current_user.name[0].upper() }}</div>
+        {{ current_user.name.split()[0] }}
+      </div>
+      <a href="/" class="btn btn-primary btn-sm">New Report</a>
+      <a href="/logout" class="btn btn-ghost btn-sm">Log out</a>
+    </div>
+  </nav>
+
+  <div class="container-md stagger-2">
+    <div class="history-header">
+      <h1 class="hero-title" style="font-size: 3rem; margin-bottom: 8px; text-align: left;">My Reports</h1>
+      <p class="hero-sub" style="margin: 0; text-align: left;">{{ reports|length }} report{{ 's' if reports|length != 1 else '' }} explained</p>
+    </div>
+
+    {% if reports %}
+    <div class="history-list stagger-3">
+      {% for report in reports %}
+      <div class="gradient-border-wrap" style="padding: 1px; border-radius: calc(var(--radius-lg) + 1px); animation: none; box-shadow: none;">
+        <a href="/history/{{ report.id }}" class="history-item glass glow-hover">
+          <div class="history-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="history-info">
+            <div class="history-name">{{ report.filename }}</div>
+            <div class="history-date">{{ report.created_at.strftime('%d %b %Y · %I:%M %p') }}</div>
+          </div>
+          <div class="history-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state glass stagger-3">
+      <div class="history-icon" style="margin: 0 auto 24px; width: 64px; height: 64px; color: var(--muted); background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05);">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M10 4v4"/><path d="M14 4v4"/><path d="M2 8h20"/><path d="M6 16v-4"/><path d="M10 16v-4"/></svg>
+      </div>
+      <h3 style="font-family: var(--font-display); font-size: 1.5rem; margin-bottom: 8px;">No reports yet</h3>
+      <p style="color: var(--muted); margin-bottom: 32px;">Upload your first PDF and get an instant explanation</p>
+      <a href="/" class="btn btn-primary btn-lg">Upload a report</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
