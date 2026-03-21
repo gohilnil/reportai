@@ -1,0 +1,325 @@
+<!-- ═══════════════════════════════════════════
+     ArogyaAI — Footer Component
+     Usage: {% include 'includes/footer.html' %}
+════════════════════════════════════════════ -->
+
+<style>
+.site-footer {
+  position: relative;
+  z-index: 5;
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  background: rgba(3,7,18,0.85);
+  backdrop-filter: blur(20px);
+  padding: 48px 2.5rem 24px;
+}
+
+.footer-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.8fr 1fr 1fr 1fr;
+  gap: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.footer-brand-col {}
+.footer-brand-name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #a5b4fc, #c4b5fd, #67e8f9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+}
+.footer-brand-desc {
+  font-size: 0.82rem;
+  color: var(--text2);
+  line-height: 1.7;
+  max-width: 260px;
+  margin-bottom: 18px;
+  font-weight: 300;
+}
+.footer-badges {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text2);
+}
+
+.footer-col-title {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+.footer-links-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.footer-links-list a {
+  font-size: 0.83rem;
+  color: var(--text2);
+  text-decoration: none;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.footer-links-list a:hover { color: var(--text); }
+.footer-links-list a .fl-icon { font-size: 0.8rem; opacity: 0.6; }
+
+/* Bottom bar */
+.footer-bottom {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-bottom-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.footer-copyright {
+  font-size: 0.78rem;
+  color: var(--text2);
+}
+.footer-disclaimer {
+  font-size: 0.72rem;
+  color: var(--text3);
+  max-width: 400px;
+  line-height: 1.5;
+}
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.footer-social-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem;
+  color: var(--text2);
+  text-decoration: none;
+  transition: var(--transition);
+}
+.footer-social-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--border2);
+  transform: translateY(-2px);
+}
+
+/* Mobile footer */
+@media (max-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  .footer-brand-col {
+    grid-column: 1 / -1;
+  }
+  .site-footer { padding: 36px 1.5rem 100px; }
+}
+@media (max-width: 480px) {
+  .footer-grid { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+
+    <!-- Brand column -->
+    <div class="footer-brand-col">
+      <div class="footer-brand-name">{{ t.app_name }}</div>
+      <div class="footer-brand-desc">
+        {{ 'AI-સંચાલિત આરોગ્ય સહાયક — PDF, ઇમેજ, અને લક્ષણ વિશ્લેષણ સરળ ભાષામાં.' if lang == 'gu' else 'AI-powered health assistant for Bharat. Understand medical reports, symptoms, and images in simple language.' }}
+      </div>
+      <div class="footer-badges">
+        <span class="footer-badge">🇮🇳 Made for Bharat</span>
+        <span class="footer-badge">🔒 Private & Secure</span>
+        <span class="footer-badge">⚡ Powered by AI</span>
+      </div>
+    </div>
+
+    <!-- Product column -->
+    <div>
+      <div class="footer-col-title">{{ 'ઉત્પાદન' if lang == 'gu' else 'Product' }}</div>
+      <ul class="footer-links-list">
+        <li>
+          <a href="/">
+            <span class="fl-icon">📄</span>
+            {{ t.nav_reports }}
+          </a>
+        </li>
+        <li>
+          <a href="/analyze-symptoms">
+            <span class="fl-icon">🩺</span>
+            {{ t.nav_symptoms }}
+          </a>
+        </li>
+        <li>
+          <a href="/analyze-image">
+            <span class="fl-icon">📸</span>
+            {{ t.nav_image }}
+          </a>
+        </li>
+        <li>
+          <a href="/history">
+            <span class="fl-icon">📋</span>
+            {{ t.nav_history }}
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Account column -->
+    <div>
+      <div class="footer-col-title">{{ 'એકાઉન્ટ' if lang == 'gu' else 'Account' }}</div>
+      <ul class="footer-links-list">
+        {% if current_user.is_authenticated %}
+        <li>
+          <a href="/account">
+            <span class="fl-icon">👤</span>
+            {{ 'મારું એકાઉન્ટ' if lang == 'gu' else 'My Account' }}
+          </a>
+        </li>
+        <li>
+          <a href="/upgrade">
+            <span class="fl-icon">⚡</span>
+            {{ 'અપગ્રેડ' if lang == 'gu' else 'Upgrade Plan' }}
+          </a>
+        </li>
+        {% if current_user.is_admin %}
+        <li>
+          <a href="/admin">
+            <span class="fl-icon">⚙️</span>
+            Admin
+          </a>
+        </li>
+        {% endif %}
+        <li>
+          <a href="/logout">
+            <span class="fl-icon">🚪</span>
+            {{ t.logout }}
+          </a>
+        </li>
+        {% else %}
+        <li>
+          <a href="/login">
+            <span class="fl-icon">🔑</span>
+            {{ 'લૉગ ઇન' if lang == 'gu' else 'Log in' }}
+          </a>
+        </li>
+        <li>
+          <a href="/signup">
+            <span class="fl-icon">🚀</span>
+            {{ 'સાઇન અપ' if lang == 'gu' else 'Sign up free' }}
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+
+    <!-- Language column -->
+    <div>
+      <div class="footer-col-title">{{ 'ભાષા' if lang == 'gu' else 'Language' }}</div>
+      <ul class="footer-links-list">
+        <li>
+          <a href="/set-language/en" style="{% if lang == 'en' %}color:var(--text); font-weight:600;{% endif %}">
+            <span class="fl-icon">🇬🇧</span>
+            English
+            {% if lang == 'en' %}<span style="margin-left:auto; font-size:0.65rem; color:#6ee7b7;">✓ Active</span>{% endif %}
+          </a>
+        </li>
+        <li>
+          <a href="/set-language/gu" style="{% if lang == 'gu' %}color:var(--text); font-weight:600;{% endif %}">
+            <span class="fl-icon">🇮🇳</span>
+            ગુજરાતી
+            {% if lang == 'gu' %}<span style="margin-left:auto; font-size:0.65rem; color:#6ee7b7;">✓ Active</span>{% endif %}
+          </a>
+        </li>
+      </ul>
+
+      <div style="margin-top:20px;">
+        <div class="footer-col-title">{{ 'સહાય' if lang == 'gu' else 'Support' }}</div>
+        <ul class="footer-links-list">
+          <li>
+            <a href="/health">
+              <span class="fl-icon">💚</span>
+              {{ 'સ્ટેટસ' if lang == 'gu' else 'App Status' }}
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="footer-bottom">
+    <div class="footer-bottom-left">
+      <span class="footer-copyright">© 2026 {{ t.app_name }}. {{ 'બધા અધિકાર સુરક્ષિત.' if lang == 'gu' else 'All rights reserved.' }}</span>
+      <span class="footer-disclaimer">⚕️ {{ t.disclaimer }}</span>
+    </div>
+    <div class="footer-social">
+      <span style="font-size:0.72rem; color:var(--text2); margin-right:4px;">
+        {{ 'દ્વારા બનાવ્યો' if lang == 'gu' else 'Built with' }} ❤️ {{ 'ભારત માટે' if lang == 'gu' else 'for Bharat' }}
+      </span>
+    </div>
+  </div>
+
+</footer>
+
+<!-- Mobile bottom navigation -->
+<nav class="mobile-nav">
+  <a href="/" class="mobile-nav-item {% if active_page == 'home' %}active{% endif %}">
+    <span class="icon">📄</span>
+    <span>{{ t.nav_reports }}</span>
+  </a>
+  <a href="/analyze-symptoms" class="mobile-nav-item {% if active_page == 'symptoms' %}active{% endif %}">
+    <span class="icon">🩺</span>
+    <span>{{ t.nav_symptoms }}</span>
+  </a>
+  <a href="/analyze-image" class="mobile-nav-item {% if active_page == 'image' %}active{% endif %}">
+    <span class="icon">📸</span>
+    <span>{{ t.nav_image }}</span>
+  </a>
+  <a href="/history" class="mobile-nav-item {% if active_page == 'history' %}active{% endif %}">
+    <span class="icon">📋</span>
+    <span>{{ t.nav_history }}</span>
+  </a>
+  <a href="/account" class="mobile-nav-item {% if active_page == 'account' %}active{% endif %}">
+    <span class="icon">👤</span>
+    <span>{{ 'એકાઉન્ટ' if lang == 'gu' else 'Account' }}</span>
+  </a>
+</nav>

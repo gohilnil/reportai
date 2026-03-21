@@ -102,20 +102,8 @@
 <div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
 
-  <nav class="navbar">
-    <a href="/" class="nav-brand">{{ t.app_name }}</a>
-    <div class="nav-center">
-      <a href="/admin" class="nav-link active" style="color:#fcd34d;">⚙️ Admin</a>
-      <a href="/" class="nav-link">📄 App</a>
-    </div>
-    <div class="nav-right">
-      <div class="nav-user">
-        <div class="nav-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);">{{ current_user.initials }}</div>
-        <span>{{ current_user.first_name }}</span>
-      </div>
-      <a href="/logout" class="btn btn-ghost btn-sm">{{ t.logout }}</a>
-    </div>
-  </nav>
+  {% set active_page = '' %}
+{% include 'includes/navbar.html' %}
 
   <div class="container" style="padding-top:36px; padding-bottom:64px;">
 
@@ -261,14 +249,7 @@
 
   </div>
 
-  <footer class="footer">
-    <span class="footer-brand">{{ t.app_name }} Admin</span>
-    <span>© 2026</span>
-    <div class="footer-right">
-      <a href="/" class="footer-link">Back to App</a>
-      <a href="/logout" class="footer-link">{{ t.logout }}</a>
-    </div>
-  </footer>
+ {% include 'includes/footer.html' %}
 
 </div>
 <script src="/static/script.js"></script>

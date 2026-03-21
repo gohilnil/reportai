@@ -276,26 +276,8 @@
 
 <div class="page">
 
-  <nav class="navbar">
-    <a href="/" class="nav-brand">{{ t.app_name }}</a>
-    <div class="nav-center">
-      <a href="/" class="nav-link">📄 {{ t.nav_reports }}</a>
-      <a href="/analyze-symptoms" class="nav-link">🩺 {{ t.nav_symptoms }}</a>
-      <a href="/analyze-image" class="nav-link">📸 {{ t.nav_image }}</a>
-      <a href="/history" class="nav-link">📋 {{ t.nav_history }}</a>
-    </div>
-    <div class="nav-right">
-      <div class="lang-toggle">
-        <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
-        <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
-      </div>
-      <div class="nav-user">
-        <div class="nav-avatar">{{ current_user.initials }}</div>
-        <span>{{ current_user.first_name }}</span>
-      </div>
-      <a href="/logout" class="btn btn-ghost btn-sm">{{ t.logout }}</a>
-    </div>
-  </nav>
+  {% set active_page = 'upgrade' %}
+{% include 'includes/navbar.html' %}
 
   <section class="hero" style="padding-bottom:36px;">
     <div class="hero-eyebrow">
@@ -315,7 +297,7 @@
 
     <!-- Test mode warning -->
     <div class="test-banner animate-in">
-      🧪 <span><strong>Test Mode:</strong> Use card <code style="background:rgba(0,0,0,0.3); padding:1px 6px; border-radius:4px;">4111 1111 1111 1111</code> · Expiry: any future date · CVV: any 3 digits</span>
+      🧪 <span><strong>Test Mode:</strong> Use card <code style="background:rgba(0,0,0,0.3); padding:1px 6px; border-radius:4px;">5267 3181 8797 5449</code> · Expiry: any future date · CVV: any 3 digits</span>
     </div>
 
     <!-- Usage banner -->
@@ -415,34 +397,7 @@
 
   </div>
 
-  <footer class="footer">
-    <span class="footer-brand">{{ t.app_name }}</span>
-    <span>© 2026 · {{ t.disclaimer }}</span>
-    <div class="footer-right">
-      <a href="/" class="footer-link">{{ t.nav_reports }}</a>
-      <a href="/logout" class="footer-link">{{ t.logout }}</a>
-    </div>
-  </footer>
-
-  <!-- Mobile nav -->
-  <nav class="mobile-nav">
-    <a href="/" class="mobile-nav-item">
-      <span class="icon">📄</span>
-      <span>{{ t.nav_reports }}</span>
-    </a>
-    <a href="/analyze-symptoms" class="mobile-nav-item">
-      <span class="icon">🩺</span>
-      <span>{{ t.nav_symptoms }}</span>
-    </a>
-    <a href="/analyze-image" class="mobile-nav-item">
-      <span class="icon">📸</span>
-      <span>{{ t.nav_image }}</span>
-    </a>
-    <a href="/history" class="mobile-nav-item">
-      <span class="icon">📋</span>
-      <span>{{ t.nav_history }}</span>
-    </a>
-  </nav>
+  {% include 'includes/footer.html' %}
 
 </div>
 

@@ -73,22 +73,8 @@
 
 <div class="page">
 
- <nav class="navbar">
-  <a href="/" class="nav-brand">{{ t.app_name }}</a>
-  <div class="nav-center">
-    <a href="/" class="nav-link">📄 {{ t.nav_reports }}</a>
-    <a href="/analyze-symptoms" class="nav-link">🩺 {{ t.nav_symptoms }}</a>
-<a href="/analyze-image" class="nav-link">📸 {{ 'ઇમેજ' if lang == 'gu' else 'Image' }}</a>
-<a href="/history" class="nav-link">📋 {{ t.nav_history }}</a>
-  </div>
-  <div class="nav-right">
-    <div class="lang-toggle">
-      <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
-      <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
-    </div>
-    <a href="/logout" class="btn btn-ghost btn-sm">{{ 'બહાર' if lang == 'gu' else 'Log out' }}</a>
-  </div>
-</nav>
+ {% set active_page = 'symptoms' %}
+{% include 'includes/navbar.html' %}
 
   <div class="container-md" style="padding-top: 32px; padding-bottom: 64px;">
 
@@ -278,28 +264,7 @@
 
   </div>
 
-  <footer class="footer">
-    <span>ArogyaAI</span>
-    <span>© 2026 · Not a substitute for medical advice</span>
-  </footer>
-<nav class="mobile-nav">
-    <a href="/" class="mobile-nav-item {% if request.path == '/' %}active{% endif %}">
-      <span class="icon">📄</span>
-      <span>{{ t.nav_reports }}</span>
-    </a>
-    <a href="/analyze-symptoms" class="mobile-nav-item {% if '/analyze-symptoms' in request.path %}active{% endif %}">
-      <span class="icon">🩺</span>
-      <span>{{ t.nav_symptoms }}</span>
-    </a>
-    <a href="/analyze-image" class="mobile-nav-item {% if '/analyze-image' in request.path %}active{% endif %}">
-      <span class="icon">📸</span>
-      <span>{{ t.nav_image }}</span>
-    </a>
-    <a href="/history" class="mobile-nav-item {% if '/history' in request.path %}active{% endif %}">
-      <span class="icon">📋</span>
-      <span>{{ t.nav_history }}</span>
-    </a>
-  </nav>
+  {% include 'includes/footer.html' %}
 </div>
 
 <script>

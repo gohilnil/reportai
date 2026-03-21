@@ -10,18 +10,8 @@
 <div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
 
-  <nav class="navbar">
-    <a href="/" class="nav-brand">{{ t.app_name }}</a>
-    <div class="nav-right">
-      <div class="lang-toggle">
-        <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
-        <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
-      </div>
-      <a href="/login" class="btn btn-ghost btn-sm">
-        {{ 'લૉગ ઇન' if lang == 'gu' else 'Log in' }}
-      </a>
-    </div>
-  </nav>
+  {% set active_page = '' %}
+{% include 'includes/navbar.html' %}
 
   <div class="auth-page">
     <div class="auth-card animate-in">
@@ -131,30 +121,7 @@
     </div>
   </div>
 
-  <footer class="footer">
-    <span class="footer-brand">{{ t.app_name }}</span>
-    <span>© 2026 · {{ t.disclaimer }}</span>
-  </footer>
-
-  <!-- Mobile bottom navigation -->
-  <nav class="mobile-nav">
-    <a href="/" class="mobile-nav-item">
-      <span class="icon">📄</span>
-      <span>{{ t.nav_reports }}</span>
-    </a>
-    <a href="/analyze-symptoms" class="mobile-nav-item">
-      <span class="icon">🩺</span>
-      <span>{{ t.nav_symptoms }}</span>
-    </a>
-    <a href="/analyze-image" class="mobile-nav-item">
-      <span class="icon">📸</span>
-      <span>{{ t.nav_image }}</span>
-    </a>
-    <a href="/history" class="mobile-nav-item">
-      <span class="icon">📋</span>
-      <span>{{ t.nav_history }}</span>
-    </a>
-  </nav>
+ {% include 'includes/footer.html' %}
 
 </div>
 <script src="/static/script.js"></script>

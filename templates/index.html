@@ -161,93 +161,8 @@
 <div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
 
-  <!-- ── NAVBAR ── -->
-  <nav class="navbar">
-    <a href="/" class="nav-brand">{{ t.app_name }}</a>
-
-    <div class="nav-center">
-      <a href="/" class="nav-link active">📄 {{ t.nav_reports }}</a>
-      <a href="/analyze-symptoms" class="nav-link">🩺 {{ t.nav_symptoms }}</a>
-      <a href="/analyze-image" class="nav-link">📸 {{ t.nav_image }}</a>
-      <a href="/history" class="nav-link">📋 {{ t.nav_history }}</a>
-    </div>
-
-    <div class="nav-right">
-
-      <!-- Language toggle -->
-      <div class="lang-toggle">
-        <a href="/set-language/en">
-          <button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button>
-        </a>
-        <a href="/set-language/gu">
-          <button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button>
-        </a>
-      </div>
-
-      <!-- Credits pill -->
-      <a href="/upgrade" class="credits-pill">
-        ⚡ {{ current_user.reports_left }}
-        {{ 'ક્રેડિટ' if lang == 'gu' else 'credits' }}
-      </a>
-
-      <!-- Profile dropdown -->
-      <div class="profile-dropdown" id="profileDropdown">
-        <div class="profile-trigger" onclick="toggleDropdown()">
-          <div class="nav-avatar">{{ current_user.initials }}</div>
-          <span class="profile-name">{{ current_user.first_name }}</span>
-          <span class="chevron">▼</span>
-        </div>
-
-        <div class="dropdown-menu">
-          <!-- User info -->
-          <div class="dropdown-header">
-            <div class="dropdown-header-name">{{ current_user.name }}</div>
-            <div class="dropdown-header-email">{{ current_user.email }}</div>
-          </div>
-
-          <!-- Credits -->
-          <div class="dropdown-credits">
-            <span class="dropdown-credits-label">
-              {{ 'ઉપલબ્ધ ક્રેડિટ' if lang == 'gu' else 'Available credits' }}
-            </span>
-            <span class="dropdown-credits-value">
-              {{ current_user.reports_left }} / {{ current_user.reports_limit }}
-            </span>
-          </div>
-
-          <!-- Menu items -->
-          <a href="/account" class="dropdown-item">
-            <span class="item-icon">👤</span>
-            {{ 'મારું એકાઉન્ટ' if lang == 'gu' else 'My Account' }}
-          </a>
-          <a href="/history" class="dropdown-item">
-            <span class="item-icon">📋</span>
-            {{ t.nav_history }}
-          </a>
-          <a href="/upgrade" class="dropdown-item">
-            <span class="item-icon">⚡</span>
-            {{ 'ક્રેડિટ ખરીદો' if lang == 'gu' else 'Buy Credits' }}
-          </a>
-
-          {% if current_user.is_admin %}
-          <div class="dropdown-divider"></div>
-          <a href="/admin" class="dropdown-item">
-            <span class="item-icon">⚙️</span>
-            Admin Dashboard
-          </a>
-          {% endif %}
-
-          <div class="dropdown-divider"></div>
-          <a href="/logout" class="dropdown-item danger">
-            <span class="item-icon">🚪</span>
-            {{ t.logout }}
-          </a>
-        </div>
-      </div>
-
-    </div>
-  </nav>
-
+  {% set active_page = 'home' %}
+{% include 'includes/navbar.html' %}
   <!-- ── HERO ── -->
   <section class="hero animate-in">
     <div class="hero-eyebrow">
@@ -360,41 +275,7 @@
 
   </div>
 
-  <!-- ── FOOTER ── -->
-  <footer class="footer">
-    <span class="footer-brand">{{ t.app_name }}</span>
-    <span>© 2026 · {{ t.disclaimer }}</span>
-    <div class="footer-right">
-      <a href="/analyze-symptoms" class="footer-link">🩺 {{ t.nav_symptoms }}</a>
-      <a href="/analyze-image" class="footer-link">📸 {{ t.nav_image }}</a>
-      <a href="/history" class="footer-link">{{ t.nav_history }}</a>
-      <a href="/upgrade" class="footer-link">⚡ {{ 'અપગ્રેડ' if lang == 'gu' else 'Upgrade' }}</a>
-    </div>
-  </footer>
-
-  <!-- ── MOBILE NAV ── -->
-  <nav class="mobile-nav">
-    <a href="/" class="mobile-nav-item active">
-      <span class="icon">📄</span>
-      <span>{{ t.nav_reports }}</span>
-    </a>
-    <a href="/analyze-symptoms" class="mobile-nav-item">
-      <span class="icon">🩺</span>
-      <span>{{ t.nav_symptoms }}</span>
-    </a>
-    <a href="/analyze-image" class="mobile-nav-item">
-      <span class="icon">📸</span>
-      <span>{{ t.nav_image }}</span>
-    </a>
-    <a href="/history" class="mobile-nav-item">
-      <span class="icon">📋</span>
-      <span>{{ t.nav_history }}</span>
-    </a>
-    <a href="/account" class="mobile-nav-item">
-      <span class="icon">👤</span>
-      <span>{{ 'એકાઉન્ટ' if lang == 'gu' else 'Account' }}</span>
-    </a>
-  </nav>
+  {% include 'includes/footer.html' %}
 
 </div>
 
@@ -416,3 +297,7 @@ document.addEventListener('click', function(e) {
 <script src="/static/script.js"></script>
 </body>
 </html>
+
+
+
+

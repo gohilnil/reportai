@@ -1,0 +1,287 @@
+<!-- ═══════════════════════════════════════════
+     ArogyaAI — Navbar Component
+     Usage: {% include 'includes/navbar.html' %}
+     Pass active_page variable from route:
+     active_page = 'home' | 'symptoms' | 'image' | 'history' | 'account' | 'upgrade'
+════════════════════════════════════════════ -->
+
+<style>
+/* ── Profile Dropdown ── */
+.profile-dropdown { position: relative; }
+
+.profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+.profile-trigger:hover {
+  background: var(--surface2);
+  border-color: var(--border2);
+}
+.profile-trigger .p-avatar {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800;
+  color: white; flex-shrink: 0;
+}
+.profile-trigger .p-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.profile-trigger .p-chevron {
+  font-size: 0.55rem;
+  color: var(--text2);
+  transition: transform 0.2s;
+  margin-left: 2px;
+}
+.profile-dropdown.open .p-chevron { transform: rotate(180deg); }
+
+/* Dropdown menu */
+.p-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  z-index: 9000;
+  overflow: hidden;
+  animation: dropFade 0.18s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes dropFade {
+  from { opacity:0; transform:translateY(-8px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0)  scale(1); }
+}
+.profile-dropdown.open .p-dropdown-menu { display: block; }
+
+.p-menu-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.p-menu-name  { font-weight: 700; font-size: 0.9rem; color: var(--text); margin-bottom: 2px; }
+.p-menu-email { font-size: 0.74rem; color: var(--text2); }
+
+.p-menu-credits {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 16px;
+  background: rgba(99,102,241,0.05);
+  border-bottom: 1px solid var(--border);
+}
+.p-menu-credits-label { font-size: 0.74rem; color: var(--text2); }
+.p-menu-credits-val {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  background: rgba(99,102,241,0.12);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.p-menu-credits-val.empty { color: #fcd34d; background: rgba(245,158,11,0.12); }
+
+.p-menu-section { padding: 6px 0; }
+.p-menu-section + .p-menu-section { border-top: 1px solid var(--border); }
+
+.p-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font-size: 0.84rem;
+  color: var(--text2);
+  text-decoration: none;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.p-menu-item:hover { background: var(--surface2); color: var(--text); }
+.p-menu-item .mi { font-size: 0.9rem; width: 18px; text-align: center; flex-shrink: 0; }
+.p-menu-item.active-item { color: #a5b4fc; }
+.p-menu-item.danger { color: #fca5a5; }
+.p-menu-item.danger:hover { background: rgba(239,68,68,0.08); color: #fca5a5; }
+.p-menu-item .badge-new {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(99,102,241,0.2);
+  color: #a5b4fc;
+}
+
+/* Credits pill */
+.nav-credits {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.nav-credits.has-credits {
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.2);
+  color: #a5b4fc;
+}
+.nav-credits.has-credits:hover {
+  background: rgba(99,102,241,0.18);
+  border-color: rgba(99,102,241,0.35);
+}
+.nav-credits.no-credits {
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.22);
+  color: #fcd34d;
+}
+.nav-credits.no-credits:hover {
+  background: rgba(245,158,11,0.18);
+}
+</style>
+
+<nav class="navbar">
+
+  <!-- Brand -->
+  <a href="/" class="nav-brand">{{ t.app_name }}</a>
+
+  <!-- Center nav links -->
+  <div class="nav-center">
+    <a href="/" class="nav-link {% if active_page == 'home' %}active{% endif %}">
+      📄 {{ t.nav_reports }}
+    </a>
+    <a href="/analyze-symptoms" class="nav-link {% if active_page == 'symptoms' %}active{% endif %}">
+      🩺 {{ t.nav_symptoms }}
+    </a>
+    <a href="/analyze-image" class="nav-link {% if active_page == 'image' %}active{% endif %}">
+      📸 {{ t.nav_image }}
+    </a>
+    <a href="/history" class="nav-link {% if active_page == 'history' %}active{% endif %}">
+      📋 {{ t.nav_history }}
+    </a>
+  </div>
+
+  <!-- Right side -->
+  <div class="nav-right">
+
+    <!-- Language toggle -->
+    <div class="lang-toggle">
+      <a href="/set-language/en">
+        <button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button>
+      </a>
+      <a href="/set-language/gu">
+        <button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button>
+      </a>
+    </div>
+
+    {% if current_user.is_authenticated %}
+
+    <!-- Credits pill -->
+    <a href="/upgrade"
+       class="nav-credits {% if current_user.reports_left > 0 %}has-credits{% else %}no-credits{% endif %}">
+      {% if current_user.reports_left > 0 %}
+        ⚡ {{ current_user.reports_left }} {{ 'ક્રેડિટ' if lang == 'gu' else 'credits' }}
+      {% else %}
+        ⚠️ {{ '0 ક્રેડિટ' if lang == 'gu' else '0 credits' }}
+      {% endif %}
+    </a>
+
+    <!-- Profile dropdown -->
+    <div class="profile-dropdown" id="profileDropdown">
+      <div class="profile-trigger" onclick="toggleProfileDropdown(event)">
+        <div class="p-avatar">{{ current_user.initials }}</div>
+        <span class="p-name">{{ current_user.first_name }}</span>
+        <span class="p-chevron">▼</span>
+      </div>
+
+      <div class="p-dropdown-menu">
+
+        <!-- User info header -->
+        <div class="p-menu-header">
+          <div class="p-menu-name">{{ current_user.name }}</div>
+          <div class="p-menu-email">{{ current_user.email }}</div>
+        </div>
+
+        <!-- Credits status -->
+        <div class="p-menu-credits">
+          <span class="p-menu-credits-label">
+            {{ 'ઉપલબ્ધ ક્રેડિટ' if lang == 'gu' else 'Available credits' }}
+          </span>
+          <span class="p-menu-credits-val {% if current_user.reports_left == 0 %}empty{% endif %}">
+            {{ current_user.reports_left }} / {{ current_user.reports_limit }}
+          </span>
+        </div>
+
+        <!-- Main menu items -->
+        <div class="p-menu-section">
+          <a href="/account" class="p-menu-item {% if active_page == 'account' %}active-item{% endif %}">
+            <span class="mi">👤</span>
+            {{ 'મારું એકાઉન્ટ' if lang == 'gu' else 'My Account' }}
+          </a>
+          <a href="/history" class="p-menu-item {% if active_page == 'history' %}active-item{% endif %}">
+            <span class="mi">📋</span>
+            {{ t.nav_history }}
+          </a>
+          <a href="/upgrade" class="p-menu-item {% if active_page == 'upgrade' %}active-item{% endif %}">
+            <span class="mi">⚡</span>
+            {{ 'ક્રેડિટ ખરીદો' if lang == 'gu' else 'Buy Credits' }}
+            {% if current_user.reports_left == 0 %}
+            <span class="badge-new">!</span>
+            {% endif %}
+          </a>
+        </div>
+
+        <!-- Admin section -->
+        {% if current_user.is_admin %}
+        <div class="p-menu-section">
+          <a href="/admin" class="p-menu-item">
+            <span class="mi">⚙️</span>
+            Admin Dashboard
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Logout -->
+        <div class="p-menu-section">
+          <a href="/logout" class="p-menu-item danger">
+            <span class="mi">🚪</span>
+            {{ t.logout }}
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    {% else %}
+    <!-- Not logged in -->
+    <a href="/login"  class="btn btn-ghost btn-sm">{{ 'લૉગ ઇન' if lang == 'gu' else 'Log in' }}</a>
+    <a href="/signup" class="btn btn-primary btn-sm">{{ 'શરૂ કરો' if lang == 'gu' else 'Get started' }}</a>
+    {% endif %}
+
+  </div>
+</nav>
+
+<script>
+function toggleProfileDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('profileDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function() {
+  const d = document.getElementById('profileDropdown');
+  if (d) d.classList.remove('open');
+});
+</script>
