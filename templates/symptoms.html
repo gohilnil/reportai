@@ -21,10 +21,17 @@
       height: 1px;
       background: linear-gradient(90deg, transparent, rgba(16,185,129,0.5), rgba(6,182,212,0.5), transparent);
     }
+
+    /* Textarea wrapper */
+    .textarea-wrapper {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
     .symptom-textarea {
       width: 100%;
       min-height: 140px;
-      padding: 16px;
+      padding: 16px 56px 16px 16px;
       background: rgba(0,0,0,0.25);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 14px;
@@ -35,19 +42,128 @@
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
       line-height: 1.6;
-      margin-bottom: 16px;
     }
     .symptom-textarea::placeholder { color: rgba(100,116,139,0.7); }
     .symptom-textarea:focus {
       border-color: #10b981;
       box-shadow: 0 0 0 3px rgba(16,185,129,0.15);
     }
-    .example-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 20px;
+    .symptom-textarea.listening {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.15);
     }
+
+    /* Mic button */
+    .mic-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: #a5b4fc;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+    .mic-btn:hover {
+      background: rgba(99,102,241,0.2);
+      border-color: rgba(99,102,241,0.4);
+      transform: scale(1.05);
+    }
+    .mic-btn.listening {
+      background: rgba(239,68,68,0.15);
+      border-color: rgba(239,68,68,0.4);
+      color: #fca5a5;
+      animation: mic-pulse 1s ease-in-out infinite;
+    }
+    @keyframes mic-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50%       { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+
+    /* Voice status bar */
+    .voice-status {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      color: #fca5a5;
+    }
+    .voice-status.active { display: flex; }
+
+    .voice-waves {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+    }
+    .voice-wave {
+      width: 3px;
+      background: #ef4444;
+      border-radius: 999px;
+      animation: wave 1s ease-in-out infinite;
+    }
+    .voice-wave:nth-child(1) { height: 6px;  animation-delay: 0s; }
+    .voice-wave:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+    .voice-wave:nth-child(3) { height: 10px; animation-delay: 0.2s; }
+    .voice-wave:nth-child(4) { height: 18px; animation-delay: 0.3s; }
+    .voice-wave:nth-child(5) { height: 8px;  animation-delay: 0.4s; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
+      50%       { transform: scaleY(1.2); opacity: 1; }
+    }
+
+    /* Language select for voice */
+    .voice-lang-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .voice-lang-label {
+      font-size: 0.78rem;
+      color: rgba(100,116,139,0.8);
+      white-space: nowrap;
+    }
+    .voice-lang-select {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #f0f4ff;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .voice-lang-select:focus { border-color: #10b981; }
+
+    /* Not supported warning */
+    .voice-not-supported {
+      display: none;
+      padding: 8px 12px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: #fcd34d;
+      margin-bottom: 12px;
+    }
+
+    /* Example chips */
+    .example-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
     .chip {
       padding: 6px 14px;
       background: rgba(16,185,129,0.08);
@@ -58,10 +174,8 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    .chip:hover {
-      background: rgba(16,185,129,0.15);
-      border-color: rgba(16,185,129,0.4);
-    }
+    .chip:hover { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); }
+
     .disclaimer-box {
       display: flex;
       align-items: flex-start;
@@ -75,12 +189,21 @@
       margin-top: 16px;
       line-height: 1.5;
     }
+
     .btn-health {
       background: linear-gradient(135deg, #10b981, #06b6d4);
       box-shadow: 0 0 20px rgba(16,185,129,0.3);
     }
-    .btn-health:hover {
-      box-shadow: 0 0 32px rgba(16,185,129,0.5);
+    .btn-health:hover { box-shadow: 0 0 32px rgba(16,185,129,0.5); }
+
+    /* How to use voice */
+    .voice-tip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: rgba(100,116,139,0.7);
+      margin-bottom: 16px;
     }
   </style>
 </head>
@@ -112,13 +235,14 @@
   <section class="hero" style="padding-bottom: 32px;">
     <div class="hero-eyebrow">
       <span class="badge badge-success">🩺 AI Health Assistant</span>
-      <span class="badge badge-accent">🇮🇳 English + ગુજરાતી</span>
+      <span class="badge badge-accent">🎤 Voice Enabled</span>
+      <span class="badge" style="background:rgba(6,182,212,0.12); border:1px solid rgba(6,182,212,0.25); color:#67e8f9;">🇮🇳 English + ગુજરાતી</span>
     </div>
     <h1 class="hero-title">
       Describe Your <span class="gradient">Symptoms</span>
     </h1>
     <p class="hero-sub">
-      Tell us how you're feeling in your own words. Our AI will help you understand possible causes and what to do next.
+      Type or <strong style="color:#6ee7b7;">speak</strong> your symptoms in English or Gujarati. Our AI will analyze and guide you.
     </p>
   </section>
 
@@ -134,29 +258,72 @@
     <div class="symptom-card">
       <form action="/analyze-symptoms" method="POST" id="symptomForm">
 
-        <div style="margin-bottom: 14px;">
+        <!-- Voice language selector -->
+        <div class="voice-lang-row">
+          <span class="voice-lang-label">🎤 Speak in:</span>
+          <select class="voice-lang-select" id="voiceLang">
+            <option value="en-IN">English (India)</option>
+            <option value="gu-IN">ગુજરાતી (Gujarati)</option>
+            <option value="hi-IN">हिंदी (Hindi)</option>
+          </select>
+          <span class="voice-tip">Click 🎤 mic button to speak</span>
+        </div>
+
+        <!-- Browser not supported warning -->
+        <div class="voice-not-supported" id="voiceNotSupported">
+          ⚠️ Voice input not supported in this browser. Please use Chrome or Edge. You can still type your symptoms.
+        </div>
+
+        <!-- Voice listening status -->
+        <div class="voice-status" id="voiceStatus">
+          <div class="voice-waves">
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+            <div class="voice-wave"></div>
+          </div>
+          <span id="voiceStatusText">Listening… speak your symptoms now</span>
+          <button type="button" onclick="stopListening()" style="margin-left:auto; background:none; border:none; color:#fca5a5; cursor:pointer; font-size:0.82rem;">Stop</button>
+        </div>
+
+        <!-- Textarea with mic button -->
+        <div style="margin-bottom: 8px;">
           <label style="font-size:0.82rem; font-weight:600; color:rgba(100,116,139,1); text-transform:uppercase; letter-spacing:0.05em;">
             Describe your symptoms
           </label>
         </div>
 
-        <textarea
-          class="symptom-textarea"
-          name="symptoms"
-          id="symptomsInput"
-          placeholder="Example: I have a headache since morning, mild fever, and feel very tired. I also have a sore throat..."
-          required
-          minlength="10"
-        ></textarea>
+        <div class="textarea-wrapper">
+          <textarea
+            class="symptom-textarea"
+            name="symptoms"
+            id="symptomsInput"
+            placeholder="Type here or click the 🎤 mic button to speak...
+
+Example: I have a headache since morning, mild fever, and feel very tired..."
+            required
+            minlength="10"
+          ></textarea>
+          <button type="button" class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">
+            🎤
+          </button>
+        </div>
+
+        <!-- Character count -->
+        <div style="text-align:right; font-size:0.75rem; color:rgba(100,116,139,0.6); margin-bottom:12px;">
+          <span id="charCount">0</span> characters
+        </div>
 
         <!-- Example chips -->
-        <div style="margin-bottom: 8px; font-size:0.78rem; color:rgba(100,116,139,0.8);">Quick examples (click to use):</div>
+        <div style="margin-bottom:8px; font-size:0.78rem; color:rgba(100,116,139,0.8);">Quick examples (click to use):</div>
         <div class="example-chips">
           <span class="chip" onclick="fillSymptom('Headache, fever, body pain since 2 days')">🤒 Fever & Headache</span>
-          <span class="chip" onclick="fillSymptom('Stomach pain, loose motions, nausea')">🤢 Stomach Issues</span>
+          <span class="chip" onclick="fillSymptom('Stomach pain, loose motions, nausea since morning')">🤢 Stomach Issues</span>
           <span class="chip" onclick="fillSymptom('Chest pain, shortness of breath, dizziness')">💔 Chest Pain</span>
-          <span class="chip" onclick="fillSymptom('Cold, runny nose, sneezing, mild cough')">🤧 Cold & Cough</span>
-          <span class="chip" onclick="fillSymptom('Back pain, difficulty sitting, pain for 3 days')">🔙 Back Pain</span>
+          <span class="chip" onclick="fillSymptom('Cold, runny nose, sneezing, mild cough for 3 days')">🤧 Cold & Cough</span>
+          <span class="chip" onclick="fillSymptom('Lower back pain, difficulty sitting, pain for 3 days')">🔙 Back Pain</span>
+          <span class="chip" onclick="fillSymptom('Feeling very tired, weakness, no energy for a week')">😴 Fatigue</span>
         </div>
 
         <button type="submit" class="btn btn-primary btn-lg btn-full btn-health" id="symptomBtn">
@@ -164,13 +331,12 @@
         </button>
 
         <div class="disclaimer-box">
-          ⚠️ <span><strong>Disclaimer:</strong> This is not a medical diagnosis. ArogyaAI provides general health information only. Always consult a qualified doctor for medical advice. | આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.</span>
+          ⚠️ <span><strong>Disclaimer:</strong> This is not a medical diagnosis. ArogyaAI provides general health information only. Always consult a qualified doctor. | આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.</span>
         </div>
 
       </form>
     </div>
 
-    <!-- Also upload report -->
     <div style="text-align:center; margin-top:28px;">
       <p style="color:rgba(100,116,139,0.7); font-size:0.88rem; margin-bottom:12px;">Or upload a medical report for detailed analysis</p>
       <a href="/" class="btn btn-ghost">📄 Upload PDF Report</a>
@@ -190,13 +356,120 @@
 </div>
 
 <script>
-function fillSymptom(text) {
-  document.getElementById('symptomsInput').value = text;
-  document.getElementById('symptomsInput').focus();
+/* ── Voice Input System ──────────────────────────── */
+let recognition = null;
+let isListening  = false;
+
+const micBtn        = document.getElementById('micBtn');
+const voiceStatus   = document.getElementById('voiceStatus');
+const voiceStatusTx = document.getElementById('voiceStatusText');
+const symptomsInput = document.getElementById('symptomsInput');
+const voiceLang     = document.getElementById('voiceLang');
+const charCount     = document.getElementById('charCount');
+const notSupported  = document.getElementById('voiceNotSupported');
+
+// Check browser support
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SpeechRecognition) {
+  notSupported.style.display = 'block';
+  micBtn.style.opacity = '0.4';
+  micBtn.style.cursor  = 'not-allowed';
+  micBtn.title = 'Voice not supported in this browser';
 }
 
-document.getElementById('symptomForm').addEventListener('submit', function() {
-  const btn = document.getElementById('symptomBtn');
+// Character counter
+symptomsInput.addEventListener('input', () => {
+  charCount.textContent = symptomsInput.value.length;
+});
+
+function toggleVoice() {
+  if (!SpeechRecognition) return;
+  isListening ? stopListening() : startListening();
+}
+
+function startListening() {
+  recognition = new SpeechRecognition();
+  recognition.lang = voiceLang.value;
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  let finalTranscript = symptomsInput.value;
+
+  recognition.onstart = () => {
+    isListening = true;
+    micBtn.classList.add('listening');
+    micBtn.textContent = '⏹';
+    symptomsInput.classList.add('listening');
+    voiceStatus.classList.add('active');
+    voiceStatusTx.textContent = 'Listening… speak your symptoms now';
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) {
+        finalTranscript += transcript + ' ';
+      } else {
+        interim = transcript;
+      }
+    }
+    symptomsInput.value = finalTranscript + interim;
+    charCount.textContent = symptomsInput.value.length;
+    voiceStatusTx.textContent = interim
+      ? `Hearing: "${interim.substring(0, 40)}…"`
+      : 'Listening… keep speaking';
+  };
+
+  recognition.onerror = (e) => {
+    let msg = 'Voice error. Please try again.';
+    if (e.error === 'not-allowed')  msg = '❌ Microphone permission denied. Please allow microphone access.';
+    if (e.error === 'no-speech')    msg = '🔇 No speech detected. Please speak clearly.';
+    if (e.error === 'network')      msg = '🌐 Network error. Check your connection.';
+    voiceStatusTx.textContent = msg;
+    setTimeout(stopListening, 2000);
+  };
+
+  recognition.onend = () => {
+    if (isListening) stopListening();
+  };
+
+  recognition.start();
+}
+
+function stopListening() {
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+  }
+  isListening = false;
+  micBtn.classList.remove('listening');
+  micBtn.textContent = '🎤';
+  symptomsInput.classList.remove('listening');
+  voiceStatus.classList.remove('active');
+
+  // Clean up the text
+  symptomsInput.value = symptomsInput.value.trim();
+  charCount.textContent = symptomsInput.value.length;
+}
+
+/* ── Example chips ───────────────────────────────── */
+function fillSymptom(text) {
+  symptomsInput.value = text;
+  charCount.textContent = text.length;
+  symptomsInput.focus();
+}
+
+/* ── Form submit loading state ───────────────────── */
+document.getElementById('symptomForm').addEventListener('submit', function(e) {
+  const val = symptomsInput.value.trim();
+  if (val.length < 10) {
+    e.preventDefault();
+    symptomsInput.focus();
+    return;
+  }
+  if (isListening) stopListening();
+  const btn   = document.getElementById('symptomBtn');
   const label = document.getElementById('symptomBtnLabel');
   btn.disabled = true;
   label.textContent = '⏳ AI is analyzing your symptoms…';
