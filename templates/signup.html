@@ -3,81 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up — ReportAI</title>
+  <title>Sign Up — {{ t.app_name }}</title>
   <link rel="stylesheet" href="/static/style.css">
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js" defer></script>
 </head>
 <body>
-
-<div class="bg-texture"></div>
-<div id="canvas-container"></div>
-
+<div class="bg-scene"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="page">
-  <nav class="navbar stagger-1">
-    <a href="/" class="nav-brand">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#brandGrad)" stroke-width="2.5"><linearGradient id="brandGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#c084fc"/></linearGradient><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      ReportAI
-    </a>
-    
+
+  <nav class="navbar">
+    <a href="/" class="nav-brand">{{ t.app_name }}</a>
     <div class="nav-right">
-      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <div class="lang-toggle">
+        <a href="/set-language/en"><button class="lang-toggle-btn {% if lang == 'en' %}active{% endif %}">EN</button></a>
+        <a href="/set-language/gu"><button class="lang-toggle-btn {% if lang == 'gu' %}active{% endif %}">ગુ</button></a>
+      </div>
+      <a href="/login" class="btn btn-ghost btn-sm">
+        {{ 'લૉગ ઇન' if lang == 'gu' else 'Log in' }}
+      </a>
     </div>
   </nav>
 
-  <div class="auth-wrapper">
-    <div class="gradient-border-wrap stagger-2">
-      <div class="gradient-border-inner glass auth-card">
-        
-        <div class="auth-icon glow-hover" style="color: var(--accent2);">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-        </div>
-        
-        <h1 class="auth-title">Create account</h1>
-        <p class="auth-sub" style="color: #6ee7b7;">2 free reports, no card needed</p>
+  <div class="auth-page">
+    <div class="auth-card animate-in">
 
-        {% if error %}
-        <div class="alert alert-error">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {{ error }}
-        </div>
-        {% endif %}
+      <div class="auth-icon">🚀</div>
+      <h1 class="auth-title">
+        {{ 'એકાઉન્ટ બનાવો' if lang == 'gu' else 'Create account' }}
+      </h1>
+      <p class="auth-sub">
+        {{ '2 મફત રિપોર્ટ — કોઈ કાર્ડ જરૂરી નથી' if lang == 'gu' else '2 free reports — no credit card needed' }}
+      </p>
 
-        <form action="/signup" method="POST">
-          <div class="form-group">
-            <label class="form-label">Name</label>
-            <input class="form-input" type="text" name="name" placeholder="John Doe" required autocomplete="name">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email address</label>
-            <input class="form-input" type="email" name="email" placeholder="you@example.com" required autocomplete="email">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input class="form-input" type="password" name="password" placeholder="Min. 6 characters" required autocomplete="new-password">
-          </div>
-          
-          <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top: 12px;">
-            Create account
-          </button>
-        </form>
-
-        <div class="auth-divider">
-          Already have an account? <a href="/login">Log in</a>
-        </div>
-        
+      {% if error %}
+      <div class="alert alert-error" style="margin-bottom:20px;">
+        <span class="alert-icon">⚠</span>
+        <span>{{ error }}</span>
       </div>
-    </div>
-  </div>
+      {% endif %}
 
-  <footer class="footer container stagger-3">
-    <div class="footer-content" style="justify-content: center;">
-      <div class="footer-brand">ReportAI © 2026</div>
-    </div>
-  </footer>
-</div>
+      <form class="auth-form" action="/signup" method="POST" novalidate>
+        <div class="form-group">
+          <label class="form-label">
+            {{ 'પૂરું નામ' if lang == 'gu' else 'Full name' }}
+          </label>
+          <input
+            class="form-input"
+            type="text"
+            name="name"
+            placeholder="{{ 'તમારું નામ' if lang == 'gu' else 'Your name' }}"
+            required
+            autocomplete="name"
+            autofocus
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            {{ 'ઇમેઇલ સરનામું' if lang == 'gu' else 'Email address' }}
+          </label>
+          <input
+            class="form-input"
+            type="email"
+            name="email"
+            placeholder="{{ 'તમારો ઇમેઇલ' if lang == 'gu' else 'you@gmail.com' }}"
+            required
+            autocomplete="email"
+          >
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            {{ 'પાસવર્ડ' if lang == 'gu' else 'Password' }}
+          </label>
+          <input
+            class="form-input"
+            type="password"
+            name="password"
+            placeholder="{{ 'ઓછામાં ઓછા ૬ અક્ષર' if lang == 'gu' else 'Min. 6 characters' }}"
+            required
+            autocomplete="new-password"
+          >
+        </div>
 
-<script src="/static/script.js"></script>
-</body>
-</html>
+        <!-- Value props -->
+        <div style="display:flex; flex-direction:column; gap:7px; padding:14px; background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.12); border-radius:10px;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#6ee7b7;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ '2 મફત રિપોર્ટ સ્પષ્ટીકરણ' if lang == 'gu' else '2 free report explanations' }}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#6ee7b7;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ 'English + ગુજરાતી આઉટપુટ' if lang == 'gu' else 'English + Gujarati output' }}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:#6ee7b7;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            {{ 'સંપૂર્ણ સુરક્ષિત — કોઈ ડેટા સ્ટોર નહીં' if lang == 'gu' else 'Completely private — no data stored' }}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full">
+          {{ 'મફત એકાઉન્ટ બનાવો' if lang == 'gu' else 'Create free account' }}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1
