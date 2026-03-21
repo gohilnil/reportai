@@ -190,18 +190,29 @@
   <!-- ── UPLOAD CARD ── -->
   <div class="container-sm animate-in delay-2" style="padding-bottom:56px;">
 
-    {% if error %}
-    <div class="alert alert-error" style="margin-bottom:16px;">
-      <span class="alert-icon">⚠</span>
-      <span>{{ error }}
-        {% if show_upgrade %}
-        <a href="/upgrade" style="color:#a5b4fc; font-weight:600; margin-left:6px;">
-          {{ 'અપગ્રેડ કરો →' if lang == 'gu' else 'Upgrade →' }}
-        </a>
-        {% endif %}
-      </span>
+   {% if error %}
+<div class="alert alert-error" style="margin-bottom:16px;">
+  <span class="alert-icon">⚠</span>
+  <div>
+    <span>{{ error }}</span>
+    {% if show_symptom_link %}
+    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="/analyze-symptoms" class="btn btn-health btn-sm">
+        🩺 {{ 'લક્ષણ વિশ્લેષક અજમાવો' if lang == 'gu' else 'Try Symptom Analyzer' }}
+      </a>
+      <a href="/analyze-image" class="btn btn-ghost btn-sm">
+        📸 {{ 'ઇमेज અપलोड करो' if lang == 'gu' else 'Upload Image Instead' }}
+      </a>
     </div>
     {% endif %}
+    {% if show_upgrade %}
+    <a href="/upgrade" style="color:#a5b4fc; font-weight:600; margin-left:6px;">
+      {{ 'અपग्रेड →' if lang == 'gu' else 'Upgrade →' }}
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 
     <div class="upload-card">
       <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">

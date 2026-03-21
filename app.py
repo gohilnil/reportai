@@ -378,13 +378,102 @@ def allowed_image(filename):
 
 
 def extract_text_from_pdf(filepath):
+    """
+    Smart PDF text extractor:
+    1. Try normal text extraction (fast)
+    2. If text is poor → try OCR on each page (handles scanned PDFs)
+    3. Returns best result
+    """
+    import io
+
+    def clean_text(t):
+        """Remove garbage characters"""
+        lines = [line.strip() for line in t.splitlines() if line.strip()]
+        return '\n'.join(lines)
+
+    def is_good_text(t):
+        """Check if extracted text is meaningful"""
+        if not t or len(t.strip()) < 30:
+            return False
+        # Check ratio of readable characters
+        readable = sum(1 for c in t if c.isalnum() or c.isspace())
+        return readable / max(len(t), 1) > 0.6
+
+    # ── Step 1: Try normal PyMuPDF extraction ──────────
     try:
         doc  = fitz.open(filepath)
-        text = '\n'.join(page.get_text() for page in doc)
+        pages_text = []
+
+        for page in doc:
+            page_text = page.get_text('text')
+            if not page_text.strip():
+                # Try blocks method
+                blocks = page.get_text('blocks')
+                page_text = '\n'.join(
+                    b[4] for b in blocks
+                    if isinstance(b[4], str) and b[4].strip()
+                )
+            pages_text.append(page_text)
+
         doc.close()
-        return text.strip()
+        normal_text = clean_text('\n'.join(pages_text))
+
+        if is_good_text(normal_text):
+            log.info(f'PDF text extracted normally: {len(normal_text)} chars')
+            return normal_text
+
     except Exception as e:
-        log.error(f'PDF extraction failed: {e}')
+        log.error(f'Normal PDF extraction failed: {e}')
+
+    # ── Step 2: Try OCR for scanned/image PDFs ─────────
+    try:
+        import pytesseract
+        from PIL import Image
+        import pdf2image
+
+        log.info('Normal extraction failed — trying OCR...')
+
+        # Convert PDF pages to images
+        images = pdf2image.convert_from_path(
+            filepath,
+            dpi=200,
+            fmt='jpeg',
+        )
+
+        ocr_texts = []
+        for i, image in enumerate(images):
+            # Run OCR on each page image
+            # Try English + Gujarati
+            try:
+                text = pytesseract.image_to_string(
+                    image,
+                    lang='eng+guj',
+                    config='--psm 3'
+                )
+            except Exception:
+                # Fallback to English only
+                text = pytesseract.image_to_string(
+                    image,
+                    lang='eng',
+                    config='--psm 3'
+                )
+            ocr_texts.append(text)
+            log.info(f'OCR page {i+1}: {len(text)} chars extracted')
+
+        ocr_text = clean_text('\n'.join(ocr_texts))
+
+        if is_good_text(ocr_text):
+            log.info(f'OCR successful: {len(ocr_text)} chars')
+            return ocr_text
+        else:
+            log.warning('OCR produced poor results')
+            return ''
+
+    except ImportError:
+        log.warning('OCR packages not installed')
+        return ''
+    except Exception as e:
+        log.error(f'OCR failed: {e}')
         return ''
 
 
@@ -726,8 +815,10 @@ def index():
                 try: os.remove(filepath)
                 except: pass
 
-        if not text or len(text.strip()) < 50:
-            return render_template('index.html', error='Could not extract text from this PDF.')
+    if not text or len(text.strip()) < 50:
+        return render_template('index.html',
+        error='Could not read this PDF. Please make sure it has readable text. You can also try describing your symptoms using the Symptom Analyzer.',
+        show_symptom_link=True)
 
         try:
             doc_type = detect_document_type(text)
