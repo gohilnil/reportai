@@ -24,6 +24,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF
 from groq import Groq
+import razorpay
+import hmac as hmac_module
+import hashlib
 from dotenv import load_dotenv
 
 # ─────────────────────────────────────────────
@@ -67,6 +70,18 @@ login_manager.login_message = ''
 
 groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
 
+razorpay_client = razorpay.Client(
+    auth=(
+        os.getenv('RAZORPAY_KEY_ID', ''),
+        os.getenv('RAZORPAY_KEY_SECRET', '')
+    )
+)
+
+PLANS = {
+    'starter': {'name': 'Starter', 'price': 49,  'reports': 10,  'popular': False},
+    'popular':  {'name': 'Popular', 'price': 99,  'reports': 25,  'popular': True},
+    'pro':      {'name': 'Pro',     'price': 199, 'reports': 60,  'popular': False},
+}
 # ─────────────────────────────────────────────
 # TRANSLATIONS
 # ─────────────────────────────────────────────
@@ -165,6 +180,20 @@ class Report(db.Model):
     def __repr__(self):
         return f'<Report {self.filename}>'
 
+class Payment(db.Model):
+    __tablename__ = 'payments'
+
+    id                  = db.Column(db.Integer, primary_key=True)
+    razorpay_order_id   = db.Column(db.String(100), nullable=False, unique=True)
+    razorpay_payment_id = db.Column(db.String(100), nullable=True)
+    plan_id             = db.Column(db.String(20),  nullable=False)
+    amount              = db.Column(db.Integer,     nullable=False)
+    status              = db.Column(db.String(20),  default='created')
+    created_at          = db.Column(db.DateTime,    default=datetime.utcnow)
+    user_id             = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    def __repr__(self):
+        return f'<Payment {self.razorpay_order_id}>'
 
 # ─────────────────────────────────────────────
 # AUTH
@@ -890,6 +919,117 @@ def analyze_image_route():
             context=context)
 
     return render_template('analyze_image.html')
+
+@app.route('/upgrade')
+@login_required
+def upgrade():
+    return render_template('upgrade.html',
+        plans=PLANS,
+        razorpay_key=os.getenv('RAZORPAY_KEY_ID', ''))
+
+
+@app.route('/create-order', methods=['POST'])
+@login_required
+def create_order():
+    try:
+        plan_id = request.json.get('plan_id')
+        if plan_id not in PLANS:
+            return jsonify(error='Invalid plan.'), 400
+
+        plan  = PLANS[plan_id]
+        order = razorpay_client.order.create({
+            'amount':          plan['price'] * 100,
+            'currency':        'INR',
+            'payment_capture': 1,
+            'notes': {
+                'user_id': str(current_user.id),
+                'plan_id': plan_id,
+            }
+        })
+
+        payment = Payment(
+            razorpay_order_id = order['id'],
+            plan_id           = plan_id,
+            amount            = plan['price'] * 100,
+            user_id           = current_user.id,
+        )
+        db.session.add(payment)
+        db.session.commit()
+
+        return jsonify(
+            order_id   = order['id'],
+            amount     = plan['price'] * 100,
+            currency   = 'INR',
+            plan_name  = plan['name'],
+            user_name  = current_user.name,
+            user_email = current_user.email,
+        )
+    except Exception as e:
+        log.error(f'Order creation error: {e}')
+        return jsonify(error='Could not create order. Please try again.'), 500
+
+
+@app.route('/payment-success', methods=['POST'])
+@login_required
+def payment_success():
+    try:
+        data       = request.json
+        order_id   = data.get('razorpay_order_id', '')
+        payment_id = data.get('razorpay_payment_id', '')
+        signature  = data.get('razorpay_signature', '')
+
+        # Verify signature — security check
+        key_secret = os.getenv('RAZORPAY_KEY_SECRET', '').encode()
+        msg        = f'{order_id}|{payment_id}'.encode()
+        expected   = hmac_module.new(key_secret, msg, hashlib.sha256).hexdigest()
+
+        if not hmac_module.compare_digest(expected, signature):
+            log.warning(f'Invalid payment signature for order {order_id}')
+            return jsonify(success=False, error='Payment verification failed.'), 400
+
+        # Update payment record
+        payment = Payment.query.filter_by(razorpay_order_id=order_id).first()
+        if not payment:
+            return jsonify(success=False, error='Order not found.'), 404
+
+        if payment.status == 'paid':
+            return jsonify(success=True, message='Already processed.')
+
+        payment.razorpay_payment_id = payment_id
+        payment.status              = 'paid'
+
+        # Add reports to user
+        plan = PLANS.get(payment.plan_id, {})
+        current_user.reports_limit += plan.get('reports', 0)
+        current_user.is_paid        = True
+        db.session.commit()
+
+        log.info(f'Payment success: {current_user.email} → {payment.plan_id}')
+
+        return jsonify(
+            success      = True,
+            reports_added = plan.get('reports', 0),
+            new_limit    = current_user.reports_limit,
+        )
+
+    except Exception as e:
+        log.error(f'Payment success handler error: {e}')
+        return jsonify(success=False, error='Something went wrong.'), 500
+
+
+@app.route('/payment-failed', methods=['POST'])
+@login_required
+def payment_failed():
+    try:
+        order_id = request.json.get('razorpay_order_id', '')
+        payment  = Payment.query.filter_by(razorpay_order_id=order_id).first()
+        if payment:
+            payment.status = 'failed'
+            db.session.commit()
+        log.warning(f'Payment failed: order {order_id}')
+    except Exception as e:
+        log.error(f'Payment failed handler error: {e}')
+    return jsonify(success=True)
 
 with app.app_context():
     db.create_all()
