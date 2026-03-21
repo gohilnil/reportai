@@ -87,6 +87,7 @@ TRANSLATIONS = {
         'disclaimer':     'This is not a medical diagnosis. Always consult a qualified doctor.',
         'no_reports_yet': 'No reports yet',
         'upload_first':   'Upload your first PDF to get started',
+        'nav_image': 'Image',
     },
     'gu': {
         'app_name':       'આરોગ્યAI',
@@ -103,6 +104,7 @@ TRANSLATIONS = {
         'disclaimer':     'આ તબીબી નિદાન નથી. ડૉક્ટરની સલાહ અવશ્ય લો.',
         'no_reports_yet': 'હજી કોઈ રિપોર્ટ નથી',
         'upload_first':   'શરૂ કરવા પ્રથમ PDF અપલોડ કરો',
+        'nav_image': 'ઇમેજ',
     }
 }
 
@@ -716,6 +718,14 @@ def health():
 # ─────────────────────────────────────────────
 # STARTUP
 # ─────────────────────────────────────────────
+@app.route('/analyze-image', methods=['GET', 'POST'])
+@login_required
+def analyze_image_route():
+    if request.method == 'POST':
+        # Step 2 will add full AI logic here
+        return render_template('analyze_image.html',
+            error='AI image analysis coming in Step 2!')
+    return render_template('analyze_image.html')
 
 with app.app_context():
     db.create_all()
