@@ -66,14 +66,30 @@ PLANS = {
 
 app = Flask(__name__)
 
-database_url = os.getenv('DATABASE_URL', 'sqlite:///arogyaai.db')
-if database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+# ── Database URL fix: Render gives 'postgres://' but SQLAlchemy 2.x needs 'postgresql://'
+database_url = os.getenv('DATABASE_URL', '')
+if not database_url:
+    # No DATABASE_URL set — use local SQLite
+    database_url = 'sqlite:///arogyaai.db'
+else:
+    # Fix Render's legacy postgres:// scheme
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    # Force psycopg2 driver explicitly
+    if database_url.startswith('postgresql://') and '+psycopg2' not in database_url:
+        database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+
+is_postgres = database_url.startswith('postgresql')
 
 app.config.update(
     SECRET_KEY                     = os.getenv('SECRET_KEY', 'dev-secret-change-in-prod'),
     SQLALCHEMY_DATABASE_URI        = database_url,
     SQLALCHEMY_TRACK_MODIFICATIONS = False,
+    SQLALCHEMY_ENGINE_OPTIONS      = {
+        'pool_pre_ping': True,      # Auto-recover dropped connections
+        'pool_recycle':  280,       # Recycle connections every 280s (Render times out at 300s)
+        'connect_args':  {'connect_timeout': 10} if is_postgres else {},
+    },
     MAX_CONTENT_LENGTH             = MAX_CONTENT_MB * 1024 * 1024,
     UPLOAD_FOLDER                  = tempfile.gettempdir(),
 )
@@ -1051,8 +1067,12 @@ def health():
 # ─────────────────────────────────────────────
 
 with app.app_context():
-    db.create_all()
-    log.info('ArogyaAI started successfully.')
+    try:
+        db.create_all()
+        log.info(f'ArogyaAI started successfully. DB: {"PostgreSQL" if is_postgres else "SQLite"}')
+    except Exception as e:
+        log.error(f'DB init error: {e}')
+        raise
 
 if __name__ == '__main__':
     app.run(debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true')

@@ -1,3 +1,10 @@
+databases:
+  - name: arogyaai-db
+    databaseName: arogyaai
+    user: arogyaai_user
+    region: singapore
+    plan: free
+
 services:
   - type: web
     name: arogyaai
@@ -9,6 +16,10 @@ services:
       pip install -r requirements.txt
     startCommand: gunicorn app:app --workers 2 --timeout 120 --bind 0.0.0.0:$PORT
     envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: arogyaai-db
+          property: connectionString
       - key: GROQ_API_KEY
         sync: false
       - key: SECRET_KEY
