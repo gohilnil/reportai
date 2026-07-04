@@ -4,8 +4,10 @@ services:
     env: python
     region: singapore
     plan: free
-    buildCommand: apt-get install -y tesseract-ocr poppler-utils && pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 1 --timeout 120
+    buildCommand: >
+      apt-get install -y tesseract-ocr poppler-utils &&
+      pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --timeout 120 --bind 0.0.0.0:$PORT
     envVars:
       - key: GROQ_API_KEY
         sync: false
@@ -22,7 +24,7 @@ services:
       - key: ADMIN_SECRET
         sync: false
       - key: OAUTHLIB_INSECURE_TRANSPORT
-        sync: false
+        value: "0"
       - key: OAUTHLIB_RELAX_TOKEN_SCOPE
-        sync: false
+        value: "1"
     autoDeploy: true

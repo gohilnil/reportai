@@ -1,5 +1,38 @@
-.env 
-*.db 
-__pycache__/ 
-venv/ 
-uploads/ 
+# Environment / secrets
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.Python
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Database files (local SQLite)
+*.db
+*.sqlite3
+instance/
+
+# Uploaded files (temp dir used in prod)
+uploads/
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
+
+# Build / dist
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
